@@ -3,6 +3,10 @@ from rest_framework import serializers
 from .models import Profile
 
 class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'username', 'email']
+class UserSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='username', read_only=True)
 
     class Meta(object):
@@ -15,9 +19,13 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 class ProfileSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
     class Meta:
         model = Profile
-        fields = ['studentId', 'course', 'level', 'role']
+        fields = ['user','user_name','studentId', 'course', 'level', 'role']
+    
+    def get_user_name(self, obj):
+        return obj.user.username if obj.user else None
         
 class ProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:

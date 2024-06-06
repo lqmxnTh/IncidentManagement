@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from .serializers import *
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -40,3 +40,7 @@ def UserRegisterView(request):
 @permission_classes([IsAuthenticated])
 def test_token(request):
     return Response("passed for {}".format((request.user.email)))
+
+class ProfileListView(generics.ListAPIView):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer

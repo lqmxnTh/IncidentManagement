@@ -28,6 +28,12 @@ const navListMenuItems = [
     to:"/dashboard"
   },
   {
+    title: "Incidents",
+    description: "Manage All Incidents Here",
+    icon: SquaresPlusIcon,
+    to:"/incident"
+  },
+  {
     title: "Manage Team",
     description: "Meet and learn about our dedication",
     icon: UserGroupIcon,

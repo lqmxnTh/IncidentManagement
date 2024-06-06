@@ -21,6 +21,8 @@ import Geography from "./scenes/geography";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import Calendar from "./scenes/calendar/calendar";
+import Incident from "./scenes/incident/Incident";
+import DetailIncident from "./scenes/incident/DetailIncident";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -151,6 +153,28 @@ function App() {
               <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <Geography />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+          path="/incident"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <Incident />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+           path="/incidents/:id"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <DetailIncident />
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
