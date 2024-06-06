@@ -16,7 +16,7 @@ class IncidentListView(generics.ListAPIView):
 
 class IncidentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Incident.objects.all()
-    serializer_class = IncidentSerializer
+    serializer_class = AdvanceIncidentSerializer
     # permission_classes = [IsAuthenticated]
     
 class ResolutionViewSet(viewsets.ModelViewSet):

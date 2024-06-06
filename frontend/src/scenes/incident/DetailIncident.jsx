@@ -1,118 +1,144 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
-  Grid,
-  TextField,
   Typography,
-  Button,
+  TextField,
   Select,
   MenuItem,
+  Button,
+  useTheme,
+  Autocomplete,
   FormControl,
+  Grid,
   InputLabel,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
-import { useTheme } from "@mui/material/styles";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
 
 const DetailIncident = () => {
-  const navigate = useNavigate();
-  const baseURL = import.meta.env.VITE_API_URL;
   const { id } = useParams();
+  const baseURL = import.meta.env.VITE_API_URL;
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const [incident, setIncident] = useState({});
-  const [incidentTypes, setIncidentTypes] = useState([]);
-  const [profiles, setProfiles] = useState([]);
-  const [classrooms, setClassrooms] = useState([]);
+  const [incident, setIncident] = useState(null);
   const [faculties, setFaculties] = useState([]);
   const [buildings, setBuildings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [floors, setFloors] = useState([]);
+  const [classrooms, setClassrooms] = useState([]);
+  const [incidentTypes, setIncidentTypes] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchIncident = async () => {
       try {
         const response = await axios.get(`${baseURL}/api/incidents/${id}/`);
         setIncident(response.data);
-        setLoading(false);
       } catch (error) {
-        console.error("Failed to fetch incident:", error);
-      }
-    };
-
-    const fetchIncidentTypes = async () => {
-      try {
-        const response = await axios.get(`${baseURL}/api/incident-types/`);
-        setIncidentTypes(response.data);
-      } catch (error) {
-        console.error("Failed to fetch incident types:", error);
-      }
-    };
-
-    const fetchProfiles = async () => {
-      try {
-        const response = await axios.get(`${baseURL}/api/profiles/`);
-        setProfiles(response.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error("Failed to fetch profiles:", error);
-      }
-    };
-
-    const fetchClassrooms = async () => {
-      try {
-        const response = await axios.get(`${baseURL}/api/classrooms/`);
-        setClassrooms(response.data);
-      } catch (error) {
-        console.error("Failed to fetch classrooms:", error);
-      }
-    };
-
-    const fetchFaculties = async () => {
-      try {
-        const response = await axios.get(`${baseURL}/api/faculties/`);
-        setFaculties(response.data);
-      } catch (error) {
-        console.error("Failed to fetch faculties:", error);
-      }
-    };
-
-    const fetchBuildings = async () => {
-      try {
-        const response = await axios.get(`${baseURL}/api/buildings/`);
-        setBuildings(response.data);
-      } catch (error) {
-        console.error("Failed to fetch buildings:", error);
+        console.error("Failed to fetch incident details:", error);
       }
     };
 
     fetchIncident();
-    fetchIncidentTypes();
-    fetchProfiles();
-    fetchClassrooms();
-    fetchFaculties();
-    fetchBuildings();
   }, [id, baseURL]);
 
-  const handleChange = (e) => {
-    setIncident({ ...incident, [e.target.name]: e.target.value });
+  useEffect(() => {
+    // Fetch all faculties on mount
+    axios
+      .get(`${baseURL}/api/faculties/`)
+      .then((response) => setFaculties(response.data))
+      .catch((error) => console.error("Error fetching faculties:", error));
+  }, [baseURL]);
+
+  useEffect(() => {
+    if (incident && incident.faculty) {
+      // Fetch buildings for the selected faculty
+      axios
+        .get(`${baseURL}/api/buildings/?faculty=${incident.faculty}`)
+        .then((response) => setBuildings(response.data))
+        .catch((error) => console.error("Error fetching buildings:", error));
+    }
+  }, [incident?.faculty, baseURL]);
+
+  useEffect(() => {
+    if (incident && incident.building) {
+      // Fetch building details to get floor count
+      axios
+        .get(`${baseURL}/api/buildings/${incident.building}/`)
+        .then((response) => {
+          const building = response.data;
+          setFloors(
+            Array.from({ length: building.floor_number + 1 }, (_, i) => i)
+          );
+        })
+        .catch((error) =>
+          console.error("Error fetching building details:", error)
+        );
+
+      // Fetch classrooms for the selected building
+      axios
+        .get(`${baseURL}/api/classrooms/?building=${incident.building}`)
+        .then((response) => setClassrooms(response.data))
+        .catch((error) => console.error("Error fetching classrooms:", error));
+    }
+  }, [incident?.building, baseURL]);
+
+  useEffect(() => {
+    if (incident && incident.building && incident.floor !== "") {
+      // Fetch classrooms for the selected building and floor
+      axios
+        .get(
+          `${baseURL}/api/classrooms/?building=${incident.building}&floor=${incident.floor}`
+        )
+        .then((response) => setClassrooms(response.data))
+        .catch((error) => console.error("Error fetching classrooms:", error));
+    }
+  }, [incident?.building, incident?.floor, baseURL]);
+
+  useEffect(() => {
+    // Fetch all incident types on mount
+    axios
+      .get(`${baseURL}/api/incident-types/`)
+      .then((response) => setIncidentTypes(response.data))
+      .catch((error) => console.error("Error fetching incident types:", error));
+  }, [baseURL]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setIncident((prevIncident) => ({
+      ...prevIncident,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSelectChange = (e) => {
+    const { name, value } = e.target;
+    setIncident((prevIncident) => ({
+      ...prevIncident,
+      [name]: value,
+    }));
+  };
+
+  const handleIncidentTypeChange = (event, value) => {
+    setIncident((prevIncident) => ({
+      ...prevIncident,
+      incident_type: value.map((type) => type.id),
+    }));
+  };
+
+  const handleSave = async () => {
     try {
       await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
-      alert("Incident updated successfully");
+      navigate("/incident"); // Redirect back to the incidents list after saving
     } catch (error) {
       console.error("Failed to update incident:", error);
-      alert("Failed to update incident");
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  
+  if (!incident) {
+    return <Typography>Loading...</Typography>;
+  }
   const handleDelete = async () => {
     try {
       await axios.delete(`${baseURL}/api/incidents/${id}`);
@@ -122,125 +148,52 @@ const DetailIncident = () => {
       console.error("Failed to delete incident:", error);
     }
   };
-
   return (
     <Box m="20px">
-      <Header title="Incident Details" subtitle="Update the incident details" />
-      <Box component="form" onSubmit={handleSubmit} mt="20px">
+      <Header
+        title="INCIDENT DETAIL"
+        subtitle="Detailed view of the incident"
+      />
+      <Box m="40px 0">
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <TextField
-              fullWidth
               label="Title"
               name="title"
-              value={incident.title || ""}
-              onChange={handleChange}
-              variant="outlined"
+              value={incident.title}
+              onChange={handleInputChange}
+              fullWidth
               margin="normal"
             />
             <TextField
-              fullWidth
               label="Description"
               name="description"
-              value={incident.description || ""}
-              onChange={handleChange}
-              variant="outlined"
-              margin="normal"
-            />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>User</InputLabel>
-              <Select
-                name="user"
-                value={incident.user?.id || ""}
-                onChange={(e) =>
-                  setIncident({
-                    ...incident,
-                    user: profiles.find((p) => p.id === e.target.value),
-                  })
-                }
-              >
-                {profiles.map((profile) => (
-                  <MenuItem key={profile.id} value={profile.id}>
-                    {profile.user_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Classroom</InputLabel>
-              <Select
-                name="classroom"
-                value={incident.classroom?.id || ""}
-                onChange={(e) =>
-                  setIncident({
-                    ...incident,
-                    classroom: classrooms.find((c) => c.id === e.target.value),
-                  })
-                }
-              >
-                {classrooms.map((classroom) => (
-                  <MenuItem key={classroom.id} value={classroom.id}>
-                    {classroom.number}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Faculty</InputLabel>
-              <Select
-                name="faculty"
-                value={incident.faculty?.id || ""}
-                onChange={(e) =>
-                  setIncident({
-                    ...incident,
-                    faculty: faculties.find((f) => f.id === e.target.value),
-                  })
-                }
-              >
-                {faculties.map((faculty) => (
-                  <MenuItem key={faculty.id} value={faculty.id}>
-                    {faculty.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={6}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Building</InputLabel>
-              <Select
-                name="building"
-                value={incident.building?.id || ""}
-                onChange={(e) =>
-                  setIncident({
-                    ...incident,
-                    building: buildings.find((b) => b.id === e.target.value),
-                  })
-                }
-              >
-                {buildings.map((building) => (
-                  <MenuItem key={building.id} value={building.id}>
-                    {building.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
+              value={incident.description}
+              onChange={handleInputChange}
               fullWidth
-              label="Floor"
-              name="floor"
-              type="number"
-              value={incident.floor || ""}
-              onChange={handleChange}
-              variant="outlined"
+              margin="normal"
+              multiline
+              rows={4}
+            />
+            <TextField
+              label="User"
+              name="user_name"
+              disabled={true}
+              value={incident.user_name}
+              onChange={handleInputChange}
+              fullWidth
               margin="normal"
             />
+
             <FormControl fullWidth margin="normal">
               <InputLabel>Status</InputLabel>
               <Select
+                label="Status"
                 name="status"
-                value={incident.status || ""}
-                onChange={handleChange}
+                value={incident.status}
+                onChange={handleSelectChange}
+                fullWidth
+                margin="normal"
               >
                 <MenuItem value="Open">Open</MenuItem>
                 <MenuItem value="In Progress">In Progress</MenuItem>
@@ -252,9 +205,12 @@ const DetailIncident = () => {
             <FormControl fullWidth margin="normal">
               <InputLabel>Priority</InputLabel>
               <Select
+                label="Priority"
                 name="priority"
-                value={incident.priority || ""}
-                onChange={handleChange}
+                value={incident.priority}
+                onChange={handleSelectChange}
+                fullWidth
+                margin="normal"
               >
                 <MenuItem value="Low">Low</MenuItem>
                 <MenuItem value="Medium">Medium</MenuItem>
@@ -262,41 +218,95 @@ const DetailIncident = () => {
                 <MenuItem value="Critical">Critical</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+          <Grid item xs={6}>
             <FormControl fullWidth margin="normal">
-              <InputLabel>Incident Type</InputLabel>
+              <InputLabel>Faculty</InputLabel>
               <Select
-                name="incident_type"
-                multiple
-                value={incident.incident_type?.map((it) => it.id) || []}
-                onChange={(e) =>
-                  setIncident({
-                    ...incident,
-                    incident_type: e.target.value.map((value) =>
-                      incidentTypes.find((it) => it.id === value)
-                    ),
-                  })
-                }
+                name="faculty"
+                value={incident.faculty}
+                onChange={handleSelectChange}
               >
-                {incidentTypes.map((incidentType) => (
-                  <MenuItem key={incidentType.id} value={incidentType.id}>
-                    {incidentType.name}
+                {faculties.map((faculty) => (
+                  <MenuItem key={faculty.id} value={faculty.id}>
+                    {faculty.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <TextField
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Building</InputLabel>
+              <Select
+                label="Building"
+                name="building"
+                value={incident.building}
+                onChange={handleSelectChange}
+                fullWidth
+                margin="normal"
+              >
+                {buildings.map((building) => (
+                  <MenuItem key={building.id} value={building.id}>
+                    {building.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Floor</InputLabel>
+              <Select
+                label="Floor"
+                name="floor"
+                value={incident.floor}
+                onChange={handleSelectChange}
+                fullWidth
+                margin="normal"
+              >
+                {floors.map((floor) => (
+                  <MenuItem key={floor} value={floor}>
+                    {floor}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Classroom</InputLabel>
+
+              <Select
+                label="Classroom"
+                name="classroom"
+                value={incident.classroom}
+                onChange={handleSelectChange}
+                fullWidth
+                margin="normal"
+              >
+                {classrooms.map((classroom) => (
+                  <MenuItem key={classroom.id} value={classroom.id}>
+                    {classroom.number}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Autocomplete
+              multiple
+              options={incidentTypes}
+              getOptionLabel={(option) => option.name}
+              value={incidentTypes.filter((type) =>
+                incident.incident_type.includes(type.id)
+              )}
+              onChange={handleIncidentTypeChange}
+              renderInput={(params) => (
+                <TextField {...params} label="Incident Types" margin="normal" />
+              )}
               fullWidth
-              label="Email"
-              name="email"
-              value={incident.email || ""}
-              onChange={handleChange}
-              variant="outlined"
-              margin="normal"
             />
           </Grid>
           <Grid item xs={12} mt="20px">
             <div className="flex space-x-4">
-              <Button type="submit" variant="contained" color="secondary">
+              <Button
+                onClick={handleSave}
+                variant="contained"
+                color="secondary"
+              >
                 Update Incident
               </Button>
               <Button variant="contained" color="info">
