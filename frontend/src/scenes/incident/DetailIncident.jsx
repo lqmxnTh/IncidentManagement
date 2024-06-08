@@ -16,6 +16,9 @@ import {
 } from "@mui/material";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
+import IncidentProgress from "../../components/IncidentProgress";
+import EscalateDialog from "../../components/EscalateDialog";
+import ResolveIncidentDialog from "../../components/ResolveIncidentDialog";
 
 const DetailIncident = () => {
   const { id } = useParams();
@@ -28,6 +31,9 @@ const DetailIncident = () => {
   const [floors, setFloors] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [incidentTypes, setIncidentTypes] = useState([]);
+  const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [escalationNote, setEscalationNote] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -136,9 +142,6 @@ const DetailIncident = () => {
     }
   };
 
-  if (!incident) {
-    return <Typography>Loading...</Typography>;
-  }
   const handleDelete = async () => {
     try {
       await axios.delete(`${baseURL}/api/incidents/${id}`);
@@ -148,12 +151,49 @@ const DetailIncident = () => {
       console.error("Failed to delete incident:", error);
     }
   };
+
+  const handleResolve = () => {
+    setResolveDialogOpen(true);
+  };
+
+  const handleEscalate = async () => {
+    setEscalateDialogOpen(true);
+  };
+
+  const handleEscalateConfirm = async () => {
+    try {
+      await axios.patch(`${baseURL}/api/incidents/${id}/`, { status: "Escalated", escalation_note: escalationNote });
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        status: "Escalated",
+      }));
+      console.log("Incident escalated successfully");
+      setEscalateDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to escalate incident:", error);
+    }
+  };
+
+  const handleEscalateClose = () => {
+    setEscalateDialogOpen(false);
+  };
+
+  const handleEscalationNoteChange = (e) => {
+    setEscalationNote(e.target.value);
+  };
+
+  const handleResolveClose = () => {
+    setResolveDialogOpen(false);
+  };
+
+  if (!incident) {
+    return <Typography>Loading...</Typography>;
+  }
+
   return (
     <Box m="20px">
-      <Header
-        title="INCIDENT DETAIL"
-        subtitle="Detailed view of the incident"
-      />
+      <Header title="INCIDENT DETAIL" subtitle="Detailed view of the incident" />
+      <IncidentProgress status={incident.status} />
       <Box m="40px 0">
         <Grid container spacing={2}>
           <Grid item xs={6}>
@@ -184,7 +224,6 @@ const DetailIncident = () => {
               fullWidth
               margin="normal"
             />
-
             <FormControl fullWidth margin="normal">
               <InputLabel>Status</InputLabel>
               <Select
@@ -270,7 +309,6 @@ const DetailIncident = () => {
             </FormControl>
             <FormControl fullWidth margin="normal">
               <InputLabel>Classroom</InputLabel>
-
               <Select
                 label="Classroom"
                 name="classroom"
@@ -302,17 +340,13 @@ const DetailIncident = () => {
           </Grid>
           <Grid item xs={12} mt="20px">
             <div className="flex space-x-4">
-              <Button
-                onClick={handleSave}
-                variant="contained"
-                color="secondary"
-              >
+              <Button onClick={handleSave} variant="contained" color="secondary">
                 Update Incident
               </Button>
-              <Button variant="contained" color="info">
+              <Button onClick={handleResolve} variant="contained" color="info">
                 Resolve Incident
               </Button>
-              <Button variant="contained" color="warning">
+              <Button onClick={handleEscalate} variant="contained" color="warning">
                 Escalate Incident
               </Button>
               <Button onClick={handleDelete} variant="contained" color="error">
@@ -322,6 +356,18 @@ const DetailIncident = () => {
           </Grid>
         </Grid>
       </Box>
+      <EscalateDialog
+        open={escalateDialogOpen}
+        onClose={handleEscalateClose}
+        onConfirm={handleEscalateConfirm}
+        onInputChange={handleEscalationNoteChange}
+        escalationNote={escalationNote}
+      />
+      <ResolveIncidentDialog
+        open={resolveDialogOpen}
+        onClose={handleResolveClose}
+        incidentId={id}
+      />
     </Box>
   );
 };
