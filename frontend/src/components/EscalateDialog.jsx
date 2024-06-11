@@ -1,44 +1,79 @@
 import React from "react";
 import {
   Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
   DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
 } from "@mui/material";
 
 const EscalateDialog = ({
   open,
   onClose,
   onConfirm,
-  onInputChange,
   escalationNote,
+  onNoteChange,
+  escalationType,
+  onTypeChange,
+  previousLevel,
+  onPreviousLevelChange,
+  newLevel,
+  onNewLevelChange,
 }) => {
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} sx={{ '& .MuiDialog-paper': { width: '600px', maxWidth: 'none' } }}>
       <DialogTitle>Escalate Incident</DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          Are you sure you want to escalate this incident? Please provide a note for the escalation.
-        </DialogContentText>
-        <TextField
-          autoFocus
-          margin="dense"
-          label="Escalation Note"
-          type="text"
-          fullWidth
-          variant="standard"
-          value={escalationNote}
-          onChange={onInputChange}
-        />
+        <Box display="flex" flexDirection="column" gap="16px">
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Escalation Type</InputLabel>
+            <Select
+              value={escalationType}
+              onChange={onTypeChange}
+              label="Escalation Type"
+            >
+              <MenuItem value="Functional">Functional</MenuItem>
+              <MenuItem value="Hierarchical">Hierarchical</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            label="Previous Level"
+            value={previousLevel}
+            onChange={onPreviousLevelChange}
+            type="number"
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="New Level"
+            value={newLevel}
+            onChange={onNewLevelChange}
+            type="number"
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Escalation Note"
+            value={escalationNote}
+            onChange={onNoteChange}
+            multiline
+            rows={4}
+            fullWidth
+            margin="normal"
+          />
+        </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="primary">
+        <Button onClick={onClose} variant="outlined" color="error">
           Cancel
         </Button>
-        <Button onClick={onConfirm} color="secondary">
+        <Button onClick={onConfirm} variant="contained" color="secondary">
           Confirm
         </Button>
       </DialogActions>

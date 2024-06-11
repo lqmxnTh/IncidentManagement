@@ -15,7 +15,7 @@ export function NavbarDefault() {
   const baseURL = import.meta.env.VITE_API_URL;
   const [cookies, setCookie, removeCookie] = useCookies(["user"]);
   const user = cookies?.user;
-  console.log(user.id,user.first_name)
+  console.log(user?.id,user?.first_name)
   const handleLogout = async () => {
     removeCookie("user");
     removeCookie("token");

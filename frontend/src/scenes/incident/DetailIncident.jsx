@@ -34,6 +34,9 @@ const DetailIncident = () => {
   const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [escalationNote, setEscalationNote] = useState("");
+  const [escalationType, setEscalationType] = useState("Functional");
+  const [previousLevel, setPreviousLevel] = useState(1);
+  const [newLevel, setNewLevel] = useState(2);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,6 +44,7 @@ const DetailIncident = () => {
       try {
         const response = await axios.get(`${baseURL}/api/incidents/${id}/`);
         setIncident(response.data);
+        console.log(incident);
       } catch (error) {
         console.error("Failed to fetch incident details:", error);
       }
@@ -156,13 +160,20 @@ const DetailIncident = () => {
     setResolveDialogOpen(true);
   };
 
-  const handleEscalate = async () => {
+  const handleEscalate = () => {
     setEscalateDialogOpen(true);
   };
 
   const handleEscalateConfirm = async () => {
     try {
-      await axios.patch(`${baseURL}/api/incidents/${id}/`, { status: "Escalated", escalation_note: escalationNote });
+      const escalationData = {
+        incident: id,
+        escalation_type: escalationType,
+        previous_level: previousLevel,
+        new_level: newLevel,
+        comments: escalationNote,
+      };
+      await axios.post(`${baseURL}/api/escalations/`, escalationData);
       setIncident((prevIncident) => ({
         ...prevIncident,
         status: "Escalated",
@@ -182,6 +193,18 @@ const DetailIncident = () => {
     setEscalationNote(e.target.value);
   };
 
+  const handleEscalationTypeChange = (e) => {
+    setEscalationType(e.target.value);
+  };
+
+  const handlePreviousLevelChange = (e) => {
+    setPreviousLevel(e.target.value);
+  };
+
+  const handleNewLevelChange = (e) => {
+    setNewLevel(e.target.value);
+  };
+
   const handleResolveClose = () => {
     setResolveDialogOpen(false);
   };
@@ -192,7 +215,10 @@ const DetailIncident = () => {
 
   return (
     <Box m="20px">
-      <Header title="INCIDENT DETAIL" subtitle="Detailed view of the incident" />
+      <Header
+        title="INCIDENT DETAIL"
+        subtitle="Detailed view of the incident"
+      />
       <IncidentProgress status={incident.status} />
       <Box m="40px 0">
         <Grid container spacing={2}>
@@ -259,12 +285,32 @@ const DetailIncident = () => {
             </FormControl>
           </Grid>
           <Grid item xs={6}>
+            <Autocomplete
+              multiple
+              options={incidentTypes}
+              getOptionLabel={(option) => option.name}
+              value={incidentTypes.filter((type) =>
+                incident.incident_type.includes(type.id)
+              )}
+              onChange={handleIncidentTypeChange}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Incident Type"
+                  fullWidth
+                  margin="normal"
+                />
+              )}
+            />
             <FormControl fullWidth margin="normal">
               <InputLabel>Faculty</InputLabel>
               <Select
+                label="Faculty"
                 name="faculty"
                 value={incident.faculty}
                 onChange={handleSelectChange}
+                fullWidth
+                margin="normal"
               >
                 {faculties.map((faculty) => (
                   <MenuItem key={faculty.id} value={faculty.id}>
@@ -324,44 +370,37 @@ const DetailIncident = () => {
                 ))}
               </Select>
             </FormControl>
-            <Autocomplete
-              multiple
-              options={incidentTypes}
-              getOptionLabel={(option) => option.name}
-              value={incidentTypes.filter((type) =>
-                incident.incident_type.includes(type.id)
-              )}
-              onChange={handleIncidentTypeChange}
-              renderInput={(params) => (
-                <TextField {...params} label="Incident Types" margin="normal" />
-              )}
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={12} mt="20px">
-            <div className="flex space-x-4">
-              <Button onClick={handleSave} variant="contained" color="secondary">
-                Update Incident
-              </Button>
-              <Button onClick={handleResolve} variant="contained" color="info">
-                Resolve Incident
-              </Button>
-              <Button onClick={handleEscalate} variant="contained" color="warning">
-                Escalate Incident
-              </Button>
-              <Button onClick={handleDelete} variant="contained" color="error">
-                Delete Incident
-              </Button>
-            </div>
           </Grid>
         </Grid>
       </Box>
+      <Grid item xs={12} mt="20px">
+        <div className="flex space-x-4">
+          <Button onClick={handleSave} variant="contained" color="secondary">
+            Update Incident
+          </Button>
+          <Button onClick={handleResolve} variant="contained" color="info">
+            Resolve Incident
+          </Button>
+          <Button onClick={handleEscalate} variant="contained" color="warning">
+            Escalate Incident
+          </Button>
+          <Button onClick={handleDelete} variant="contained" color="error">
+            Delete Incident
+          </Button>
+        </div>
+      </Grid>
       <EscalateDialog
         open={escalateDialogOpen}
         onClose={handleEscalateClose}
         onConfirm={handleEscalateConfirm}
-        onInputChange={handleEscalationNoteChange}
         escalationNote={escalationNote}
+        onNoteChange={handleEscalationNoteChange}
+        escalationType={escalationType}
+        onTypeChange={handleEscalationTypeChange}
+        previousLevel={previousLevel}
+        onPreviousLevelChange={handlePreviousLevelChange}
+        newLevel={newLevel}
+        onNewLevelChange={handleNewLevelChange}
       />
       <ResolveIncidentDialog
         open={resolveDialogOpen}
