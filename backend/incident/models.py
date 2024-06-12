@@ -2,7 +2,7 @@ from django.db import models
 from api.models import Profile, Team
 from location.models import Classroom, Faculty, Building
 from django.forms import ValidationError
-
+from django.contrib.auth.models import User
 class IncidentType(models.Model):
     name = models.CharField(max_length=250)
     
@@ -25,7 +25,8 @@ class Incident(models.Model):
         ('Critical', 'Critical'),
     ]
 
-    user = models.ForeignKey(Profile, blank=True, null=True, on_delete=models.CASCADE)
+    profile = models.ForeignKey(Profile, blank=True, null=True, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, blank=True, null=True, on_delete=models.CASCADE)
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, blank=True, null=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, blank=True, null=True)
     building = models.ForeignKey(Building, on_delete=models.CASCADE, blank=True, null=True)

@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'studentId', 'course', 'level', 'role']  # Add other fields as needed
+        fields = ['id','profile', 'user', 'studentId', 'course', 'level', 'role']  # Add other fields as needed
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -42,6 +42,7 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
         model = Incident
         fields = [
             'id', 
+            'profile',
             'user',
             'user_name',
             'user_first_name',
@@ -66,10 +67,10 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
         ]
 
     def get_user_name(self, obj):
-        return obj.user.user.username if obj.user else None
+        return obj.user.username if obj.user else None
 
     def get_user_first_name(self, obj):
-        return obj.user.user.first_name if obj.user else None
+        return obj.user.first_name if obj.user else None
 
     def get_classroom_name(self, obj):
         return obj.classroom.number if obj.classroom else None
@@ -98,6 +99,7 @@ class IncidentSerializer(serializers.ModelSerializer):
         model = Incident
         fields = [
             'id', 
+            'profile',
             'user',
             'title', 
             'description',
