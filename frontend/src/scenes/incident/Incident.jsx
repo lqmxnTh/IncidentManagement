@@ -79,12 +79,6 @@ const Incident = () => {
       flex: 1,
     },
   ];
-
-  const handleEdit = (id) => {
-    // Handle edit incident logic
-    console.log(`Edit incident with id: ${id}`);
-  };
-
   return (
     <Box m="20px">
       <Header title="INCIDENTS" subtitle="Managing the Incidents" />
@@ -117,7 +111,7 @@ const Incident = () => {
           },
         }}
       >
-        <DataGrid rows={incidents} columns={columns} onRowClick={handleRowClick} />
+        <DataGrid className="cursor-pointer" rows={incidents} columns={columns} onRowClick={handleRowClick} />
       </Box>
     </Box>
   );
