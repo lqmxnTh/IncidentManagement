@@ -16,14 +16,21 @@ class Profile(models.Model):
     studentId = models.IntegerField(unique=True,blank=True,null=True)
     course = models.CharField(null=True,blank=True,max_length=200)
     level = models.IntegerField(null=True,blank=True)
-    role = models.ForeignKey(Role, null=True,blank=True,on_delete=models.CASCADE)
+    role = models.ManyToManyField(Role,blank=True,default=None)
 
     def __str__(self):
         return self.user.username
     
+class Department(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+    
 class Team(models.Model):
     name = models.CharField(max_length=100)
     members = models.ManyToManyField(Profile, related_name='teams')
+    department = models.ManyToManyField(Department,blank=True,default=None)
 
     def __str__(self):
         return f"Team - {self.name} - Members {self.members}"

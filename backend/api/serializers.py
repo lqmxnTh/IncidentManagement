@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Profile
+from .models import Role, Department, Team, Profile
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,3 +38,19 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
             'role': {'required': False,'blank':True},
         }
 
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'name']
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name']
+
+class TeamSerializer(serializers.ModelSerializer):
+    members = ProfileSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Team
+        fields = ['id', 'name', 'members', 'department']
