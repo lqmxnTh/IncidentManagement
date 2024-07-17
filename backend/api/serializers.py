@@ -22,7 +22,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     class Meta:
         model = Profile
-        fields = ['user','user_name','studentId', 'course', 'level', 'role']
+        fields = ['id','user','user_name','studentId', 'course', 'level', 'role']
     
     def get_user_name(self, obj):
         return obj.user.username if obj.user else None
@@ -49,8 +49,9 @@ class DepartmentSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 class TeamSerializer(serializers.ModelSerializer):
-    members = ProfileSerializer(many=True, read_only=True)
-    
+    members = serializers.PrimaryKeyRelatedField(many=True, queryset=Profile.objects.all())
+    department = serializers.PrimaryKeyRelatedField(many=True, queryset=Department.objects.all())
+
     class Meta:
         model = Team
         fields = ['id', 'name', 'members', 'department']

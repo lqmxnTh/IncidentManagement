@@ -69,7 +69,7 @@ export function NavbarDefault() {
         color="blue-gray"
         className="flex items-center gap-x-2 p-1 font-medium"
       >
-        <NavListMenu /> {/* Add NavListMenu component here */}
+        <NavListMenu /> {/* Mega Menu */}
       </Typography>
     </ul>
   );

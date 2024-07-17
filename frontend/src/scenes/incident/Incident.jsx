@@ -111,7 +111,7 @@ const Incident = () => {
           },
         }}
       >
-        <DataGrid className="cursor-pointer" rows={incidents} columns={columns} onRowClick={handleRowClick} />
+        <DataGrid autoPageSize className="cursor-pointer" rows={incidents} columns={columns} onRowClick={handleRowClick} />
       </Box>
     </Box>
   );

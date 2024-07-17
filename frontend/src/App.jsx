@@ -23,6 +23,8 @@ import { ColorModeContext, useMode } from "./theme";
 import Calendar from "./scenes/calendar/calendar";
 import Incident from "./scenes/incident/Incident";
 import DetailIncident from "./scenes/incident/DetailIncident";
+import DetailTeam from "./scenes/team/DetailTeam";
+import NewTeam from "./scenes/team/NewTeam";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -175,6 +177,28 @@ function App() {
               <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <DetailIncident />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+           path="/teams/:id"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <DetailTeam />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+           path="/teams/new"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <NewTeam />
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
