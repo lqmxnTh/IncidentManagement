@@ -7,11 +7,18 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const DepartmentCell = ({ departmentIds, allDepartments }) => {
-  const departmentNames = departmentIds?.map(id => allDepartments.find(dept => dept.id === id)?.name)
+  const departmentNames = departmentIds
+    ?.map((id) => allDepartments.find((dept) => dept.id === id)?.name)
     .filter(Boolean);
 
   return (
-    <Box display="flex" flexWrap="wrap" gap={1} alignItems="center" height={"100%"}>
+    <Box
+      display="flex"
+      flexWrap="wrap"
+      gap={1}
+      alignItems="center"
+      height={"100%"}
+    >
       {departmentNames?.map((dept, index) => (
         <Box
           key={index}
@@ -33,11 +40,18 @@ const DepartmentCell = ({ departmentIds, allDepartments }) => {
 };
 
 const MembersCell = ({ memberIds, allMembers }) => {
-  const memberNames = memberIds?.map(id => allMembers.find(mem => mem.id === id)?.user_name)
+  const memberNames = memberIds
+    ?.map((id) => allMembers.find((mem) => mem.id === id)?.user_name)
     .filter(Boolean);
 
   return (
-    <Box display="flex" flexWrap="wrap" gap={1} alignItems="center" height={"100%"}>
+    <Box
+      display="flex"
+      flexWrap="wrap"
+      gap={1}
+      alignItems="center"
+      height={"100%"}
+    >
       {memberNames?.map((mem, index) => (
         <Box
           key={index}
@@ -118,7 +132,9 @@ const Team = () => {
       headerName: "Members",
       headerAlign: "left",
       align: "left",
-      renderCell: (params) => <MembersCell memberIds={params.value} allMembers={allMembers} />,
+      renderCell: (params) => (
+        <MembersCell memberIds={params.value} allMembers={allMembers} />
+      ),
       flex: 3,
     },
     {
@@ -126,7 +142,12 @@ const Team = () => {
       headerName: "Department",
       headerAlign: "left",
       align: "left",
-      renderCell: (params) => <DepartmentCell departmentIds={params.value} allDepartments={allDepartments} />,
+      renderCell: (params) => (
+        <DepartmentCell
+          departmentIds={params.value}
+          allDepartments={allDepartments}
+        />
+      ),
       flex: 3,
     },
   ];
@@ -134,9 +155,23 @@ const Team = () => {
   return (
     <Box m="20px">
       <Header title="TEAM" subtitle="Managing the Team Members" />
-      <Button variant="contained" color="secondary" onClick={() => navigate("/teams/new")}>
-        New Team
-      </Button>
+      <div className="flex space-x-4">
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => navigate("/teams/new")}
+        >
+          New Team
+        </Button>
+        <Button
+          variant="contained"
+          color="info"
+          onClick={() => navigate("/departments")}
+        >
+          View Departments
+        </Button>
+      </div>
+
       <Box
         m="20px 0 0 0"
         height="75vh"
@@ -166,7 +201,13 @@ const Team = () => {
           },
         }}
       >
-        <DataGrid rows={teams} columns={columns} onRowClick={handleRowClick} autoPageSize />
+        <DataGrid
+          className="cursor-pointer"
+          rows={teams}
+          columns={columns}
+          onRowClick={handleRowClick}
+          autoPageSize
+        />
       </Box>
     </Box>
   );
