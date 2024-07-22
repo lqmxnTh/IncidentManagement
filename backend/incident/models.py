@@ -16,6 +16,7 @@ class Incident(models.Model):
         ('Resolved', 'Resolved'),
         ('Closed', 'Closed'),
         ('Escalated', 'Escalated'),
+        ('Rejected', 'Rejected'),
     ]
 
     PRIORITY_CHOICES = [

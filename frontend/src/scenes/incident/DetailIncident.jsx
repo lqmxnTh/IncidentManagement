@@ -44,7 +44,6 @@ const DetailIncident = () => {
       try {
         const response = await axios.get(`${baseURL}/api/incidents/${id}/`);
         setIncident(response.data);
-        console.log(incident);
       } catch (error) {
         console.error("Failed to fetch incident details:", error);
       }
@@ -54,7 +53,6 @@ const DetailIncident = () => {
   }, [id, baseURL]);
 
   useEffect(() => {
-    // Fetch all faculties on mount
     axios
       .get(`${baseURL}/api/faculties/`)
       .then((response) => setFaculties(response.data))
@@ -63,7 +61,6 @@ const DetailIncident = () => {
 
   useEffect(() => {
     if (incident && incident.faculty) {
-      // Fetch buildings for the selected faculty
       axios
         .get(`${baseURL}/api/buildings/?faculty=${incident.faculty}`)
         .then((response) => setBuildings(response.data))
@@ -73,7 +70,6 @@ const DetailIncident = () => {
 
   useEffect(() => {
     if (incident && incident.building) {
-      // Fetch building details to get floor count
       axios
         .get(`${baseURL}/api/buildings/${incident.building}/`)
         .then((response) => {
@@ -86,7 +82,6 @@ const DetailIncident = () => {
           console.error("Error fetching building details:", error)
         );
 
-      // Fetch classrooms for the selected building
       axios
         .get(`${baseURL}/api/classrooms/?building=${incident.building}`)
         .then((response) => setClassrooms(response.data))
@@ -96,7 +91,6 @@ const DetailIncident = () => {
 
   useEffect(() => {
     if (incident && incident.building && incident.floor !== "") {
-      // Fetch classrooms for the selected building and floor
       axios
         .get(
           `${baseURL}/api/classrooms/?building=${incident.building}&floor=${incident.floor}`
@@ -107,7 +101,6 @@ const DetailIncident = () => {
   }, [incident?.building, incident?.floor, baseURL]);
 
   useEffect(() => {
-    // Fetch all incident types on mount
     axios
       .get(`${baseURL}/api/incident-types/`)
       .then((response) => setIncidentTypes(response.data))
@@ -137,10 +130,12 @@ const DetailIncident = () => {
     }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (redirect) => {
     try {
       await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
-      navigate("/incident"); // Redirect back to the incidents list after saving
+      if (redirect) {
+        navigate("/incident"); 
+      }
     } catch (error) {
       console.error("Failed to update incident:", error);
     }
@@ -209,6 +204,26 @@ const DetailIncident = () => {
     setResolveDialogOpen(false);
   };
 
+  const handleAccept = () => {
+    setIncident((prevIncidentStatus) => ({
+      ...prevIncidentStatus,
+      status: "In Progress",
+    }));
+    handleSave(false);
+    console.log(incident.status);
+  };
+
+  const handleReject = () => {
+    setIncident((prevIncidentStatus) => ({
+      ...prevIncidentStatus,
+      status: "Rejected",
+    }));
+    handleSave(false);
+    console.log(incident.status);
+  };
+
+  const isEditable = incident?.status === "Open" || incident?.status === "In Progress";
+
   if (!incident) {
     return <Typography>Loading...</Typography>;
   }
@@ -217,9 +232,45 @@ const DetailIncident = () => {
     <Box m="20px">
       <Header
         title="INCIDENT DETAIL"
-        subtitle="Detailed view of the incident"
+        subtitle="Detailed view of the Incident"
       />
       <IncidentProgress status={incident.status} />
+      <Grid item xs={12} mt="20px">
+        <div className="flex space-x-4">
+          {incident?.status === "Open" && (
+            <>
+              <Button
+                onClick={handleAccept}
+                variant="contained"
+                color="secondary"
+              >
+                Accept
+              </Button>
+            </>
+          )}
+
+          <Button
+            onClick={() => handleSave(true)}
+            variant="contained"
+            color="secondary"
+            disabled={!isEditable}
+          >
+            Update Incident
+          </Button>
+          <Button onClick={handleResolve} variant="contained" color="info">
+            Resolve Incident
+          </Button>
+          <Button onClick={handleEscalate} variant="contained" color="warning">
+            Escalate Incident
+          </Button>
+          <Button onClick={handleDelete} variant="contained" color="error">
+            Delete Incident
+          </Button>
+          <Button onClick={handleReject} variant="contained" color="primary">
+            Reject
+          </Button>
+        </div>
+      </Grid>
       <Box m="40px 0">
         <Grid container spacing={2}>
           <Grid item xs={6}>
@@ -230,6 +281,7 @@ const DetailIncident = () => {
               onChange={handleInputChange}
               fullWidth
               margin="normal"
+              disabled={!isEditable}
             />
             <TextField
               label="Description"
@@ -240,6 +292,7 @@ const DetailIncident = () => {
               margin="normal"
               multiline
               rows={4}
+              disabled={!isEditable}
             />
             <TextField
               label="User"
@@ -250,7 +303,7 @@ const DetailIncident = () => {
               fullWidth
               margin="normal"
             />
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled={!isEditable}>
               <InputLabel>Status</InputLabel>
               <Select
                 label="Status"
@@ -265,9 +318,10 @@ const DetailIncident = () => {
                 <MenuItem value="Resolved">Resolved</MenuItem>
                 <MenuItem value="Closed">Closed</MenuItem>
                 <MenuItem value="Escalated">Escalated</MenuItem>
+                <MenuItem value="Rejected">Rejected</MenuItem>
               </Select>
             </FormControl>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled={!isEditable}>
               <InputLabel>Priority</InputLabel>
               <Select
                 label="Priority"
@@ -299,10 +353,11 @@ const DetailIncident = () => {
                   label="Incident Type"
                   fullWidth
                   margin="normal"
+                  disabled={!isEditable}
                 />
               )}
             />
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled={!isEditable}>
               <InputLabel>Faculty</InputLabel>
               <Select
                 label="Faculty"
@@ -319,7 +374,7 @@ const DetailIncident = () => {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled={!isEditable}>
               <InputLabel>Building</InputLabel>
               <Select
                 label="Building"
@@ -336,7 +391,7 @@ const DetailIncident = () => {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled={!isEditable}>
               <InputLabel>Floor</InputLabel>
               <Select
                 label="Floor"
@@ -353,7 +408,7 @@ const DetailIncident = () => {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled={!isEditable}>
               <InputLabel>Classroom</InputLabel>
               <Select
                 label="Classroom"
@@ -373,22 +428,7 @@ const DetailIncident = () => {
           </Grid>
         </Grid>
       </Box>
-      <Grid item xs={12} mt="20px">
-        <div className="flex space-x-4">
-          <Button onClick={handleSave} variant="contained" color="secondary">
-            Update Incident
-          </Button>
-          <Button onClick={handleResolve} variant="contained" color="info">
-            Resolve Incident
-          </Button>
-          <Button onClick={handleEscalate} variant="contained" color="warning">
-            Escalate Incident
-          </Button>
-          <Button onClick={handleDelete} variant="contained" color="error">
-            Delete Incident
-          </Button>
-        </div>
-      </Grid>
+
       <EscalateDialog
         open={escalateDialogOpen}
         onClose={handleEscalateClose}
@@ -412,3 +452,7 @@ const DetailIncident = () => {
 };
 
 export default DetailIncident;
+
+// TODO: Resolve BUTTON TO BE VISIBLE AND INVISIBLE
+// TODO: ESCALATE BUTTON TO BE VISIBLE AND INVISIBLE
+// TODO: UPDATE BUTTON TO BE REMOVE MAKE SAVE TO BE INSTANTENOUS

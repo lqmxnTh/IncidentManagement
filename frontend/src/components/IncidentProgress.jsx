@@ -1,4 +1,3 @@
-// IncidentProgress.jsx
 import React from 'react';
 import { Stepper, Step, StepLabel, styled } from '@mui/material';
 
@@ -9,50 +8,40 @@ const CustomStepper = styled(Stepper)(({ theme }) => ({
 
 const CustomStepLabel = styled(StepLabel)(({ theme }) => ({
   '& .MuiStepIcon-root': {
-    color: theme.palette.primary.main, // Default color for icons
+    color: theme.palette.primary.main,
   },
   '& .MuiStepIcon-root.Mui-active': {
-    color: theme.palette.secondary.main, // Color for active icons
+    color: theme.palette.secondary.main,
   },
   '& .MuiStepIcon-root.Mui-completed': {
-    color: theme.palette.success.main, // Color for completed icons
+    color: theme.palette.success.main,
   },
   '& .MuiStepLabel-label': {
-    color: theme.palette.text.primary, // Default color for text
+    color: theme.palette.text.primary,
   },
   '& .MuiStepLabel-label.Mui-active': {
-    color: theme.palette.secondary.main, // Color for active text
-    fontWeight: 'bold', // Additional styling for active text
+    color: theme.palette.secondary.main,
+    fontWeight: 'bold',
   },
   '& .MuiStepLabel-label.Mui-completed': {
-    color: theme.palette.success.main, // Color for completed text
+    color: theme.palette.success.main,
   },
 }));
 
-const IncidentProgress = ({ status, includeEscalated }) => {
-  const steps = includeEscalated 
-    ? ['Open', 'In Progress', 'Resolved', 'Closed', 'Escalated'] 
-    : ['Open', 'In Progress', 'Resolved', 'Closed'];
+const IncidentProgress = ({ status }) => {
+  let steps = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
-  const getStatusIndex = (status) => {
-    switch (status) {
-      case 'Open':
-        return 0;
-      case 'In Progress':
-        return 1;
-      case 'Resolved':
-        return 2;
-      case 'Closed':
-        return 3;
-      case 'Escalated':
-        return 4;
-      default:
-        return 0;
-    }
-  };
+  if (status === 'Rejected') {
+    steps.push('Rejected');
+  }
+  if (status === 'Escalated') {
+    steps.push('Escalated');
+  }
+
+  const statusIndex = steps.indexOf(status);
 
   return (
-    <CustomStepper activeStep={getStatusIndex(status)} alternativeLabel>
+    <CustomStepper activeStep={statusIndex !== -1 ? statusIndex : 0} alternativeLabel>
       {steps.map((label) => (
         <Step key={label}>
           <CustomStepLabel>{label}</CustomStepLabel>

@@ -28,22 +28,22 @@ const navListMenuItems = [
     to:"/dashboard"
   },
   {
-    title: "Incidents",
+    title: "Manage Incidents",
     description: "Manage All Incidents Here",
     icon: SquaresPlusIcon,
     to:"/incident"
   },
   {
-    title: "Manage Team",
+    title: "Manage Teams",
     description: "Meet and learn about our dedication",
     icon: UserGroupIcon,
     to:"/team"
   },
   {
-    title: "Contact Information",
+    title: "Manage Locations",
     description: "Find the perfect solution for your needs.",
     icon: Bars4Icon,
-    to:"/contact"
+    to:"/locations"
   },
   {
     title: "Profile Form",
