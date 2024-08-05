@@ -63,7 +63,8 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
             'priority',
             'email',
             'escalation_level',
-            'incident_type'
+            'incident_type',
+            'teams',
         ]
 
     def get_user_name(self, obj):
@@ -110,7 +111,8 @@ class IncidentSerializer(serializers.ModelSerializer):
             'building',
             'classroom',
             'status',
-            'email'
+            'email',
+            'teams'
             ]
 
 class ResolutionSerializer(serializers.ModelSerializer):

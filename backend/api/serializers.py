@@ -22,7 +22,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     class Meta:
         model = Profile
-        fields = ['id','user','user_name','studentId', 'course', 'level', 'role']
+        fields = ['id','user','user_name','role']
     
     def get_user_name(self, obj):
         return obj.user.username if obj.user else None
@@ -32,9 +32,6 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ['user']
         extra_kwargs = {
-            'studentId': {'required': False,'blank':True},
-            'course': {'required': False,'blank':True},
-            'level': {'required': False,'blank':True},
             'role': {'required': False,'blank':True},
         }
 

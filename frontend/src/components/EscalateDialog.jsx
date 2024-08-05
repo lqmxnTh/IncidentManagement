@@ -59,6 +59,7 @@ const EscalateDialog = ({
             margin="normal"
           />
           <TextField
+            required={true}
             label="Escalation Note"
             value={escalationNote}
             onChange={onNoteChange}

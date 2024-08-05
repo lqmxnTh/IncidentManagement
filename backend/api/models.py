@@ -13,9 +13,6 @@ class Role(models.Model):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
-    studentId = models.IntegerField(unique=True,blank=True,null=True)
-    course = models.CharField(null=True,blank=True,max_length=200)
-    level = models.IntegerField(null=True,blank=True)
     role = models.ManyToManyField(Role,blank=True,default=None)
 
     def __str__(self):

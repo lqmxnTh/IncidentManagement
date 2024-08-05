@@ -11,7 +11,7 @@ import {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const ResolveIncidentDialog = ({ open, onClose, incidentId }) => {
+const ResolveIncidentDialog = ({ open, onClose, incidentId,save }) => {
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [resolutionTime, setResolutionTime] = useState("");
   const baseURL = import.meta.env.VITE_API_URL;
@@ -26,8 +26,8 @@ const ResolveIncidentDialog = ({ open, onClose, incidentId }) => {
         resolved_by: [], // Add appropriate team IDs here if needed
       };
       await axios.post(`${baseURL}/api/resolutions/`, resolutionData);
+      save();
       onClose();
-      navigate("/incidents");  // Redirect back to the incidents list after resolving
     } catch (error) {
       console.error("Failed to resolve incident:", error);
     }

@@ -19,7 +19,8 @@ import Header from "../../components/Header";
 import IncidentProgress from "../../components/IncidentProgress";
 import EscalateDialog from "../../components/EscalateDialog";
 import ResolveIncidentDialog from "../../components/ResolveIncidentDialog";
-
+import { updateItemStatus } from "../../hooks/utils";
+import MapComponent from "../../components/MapComponent";
 const DetailIncident = () => {
   const { id } = useParams();
   const baseURL = import.meta.env.VITE_API_URL;
@@ -31,6 +32,7 @@ const DetailIncident = () => {
   const [floors, setFloors] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [incidentTypes, setIncidentTypes] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [escalationNote, setEscalationNote] = useState("");
@@ -38,7 +40,29 @@ const DetailIncident = () => {
   const [previousLevel, setPreviousLevel] = useState(1);
   const [newLevel, setNewLevel] = useState(2);
   const navigate = useNavigate();
-
+  const [userLocation, setUserLocation] = useState(null);
+  const getUserLocation = () => {
+    // if geolocation is supported by the users browser
+    if (navigator.geolocation) {
+      // get the current users location
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // save the geolocation coordinates in two variables
+          const { latitude, longitude } = position.coords;
+          // update the value of userlocation variable
+          setUserLocation({ latitude, longitude });
+        },
+        // if there was an error getting the users location
+        (error) => {
+          console.error('Error getting user location:', error);
+        }
+      );
+    }
+    // if geolocation is not supported by the users browser
+    else {
+      console.error('Geolocation is not supported by this browser.');
+    }
+  };
   useEffect(() => {
     const fetchIncident = async () => {
       try {
@@ -107,6 +131,13 @@ const DetailIncident = () => {
       .catch((error) => console.error("Error fetching incident types:", error));
   }, [baseURL]);
 
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/teams/`)
+      .then((response) => setTeams(response.data))
+      .catch((error) => console.error("Error fetching teams:", error));
+  }, [baseURL]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setIncident((prevIncident) => ({
@@ -130,12 +161,16 @@ const DetailIncident = () => {
     }));
   };
 
-  const handleSave = async (redirect) => {
+  const handleTeamsChange = (event, value) => {
+    setIncident((prevIncident) => ({
+      ...prevIncident,
+      teams: value.map((type) => type.id),
+    }));
+  };
+
+  const handleSave = async () => {
     try {
       await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
-      if (redirect) {
-        navigate("/incident"); 
-      }
     } catch (error) {
       console.error("Failed to update incident:", error);
     }
@@ -162,6 +197,7 @@ const DetailIncident = () => {
   const handleEscalateConfirm = async () => {
     try {
       const escalationData = {
+        escalated_by: 14,
         incident: id,
         escalation_type: escalationType,
         previous_level: previousLevel,
@@ -177,6 +213,12 @@ const DetailIncident = () => {
       setEscalateDialogOpen(false);
     } catch (error) {
       console.error("Failed to escalate incident:", error);
+    }
+    try {
+      await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
+      console.log("incident successfully saved");
+    } catch (error) {
+      console.error("Failed to update incident:", error);
     }
   };
 
@@ -200,29 +242,52 @@ const DetailIncident = () => {
     setNewLevel(e.target.value);
   };
 
-  const handleResolveClose = () => {
+  const handleResolveClose = async () => {
     setResolveDialogOpen(false);
   };
 
-  const handleAccept = () => {
-    setIncident((prevIncidentStatus) => ({
-      ...prevIncidentStatus,
-      status: "In Progress",
-    }));
-    handleSave(false);
-    console.log(incident.status);
+  const handleSaveResolveClose = async () => {
+    if (incident) {
+      await updateItemStatus(baseURL, id, incident, "Resolved");
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        status: "Resolved",
+      }));
+    }
   };
 
-  const handleReject = () => {
-    setIncident((prevIncidentStatus) => ({
-      ...prevIncidentStatus,
-      status: "Rejected",
-    }));
-    handleSave(false);
-    console.log(incident.status);
+  const handleAccept = async () => {
+    if (incident) {
+      await updateItemStatus(baseURL, id, incident, "In Progress");
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        status: "In Progress",
+      }));
+    }
   };
 
-  const isEditable = incident?.status === "Open" || incident?.status === "In Progress";
+  const handleReject = async () => {
+    if (incident) {
+      await updateItemStatus(baseURL, id, incident, "Rejected");
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        status: "Rejected",
+      }));
+    }
+  };
+
+  const handleClose = async () => {
+    if (incident) {
+      await updateItemStatus(baseURL, id, incident, "Closed");
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        status: "Closed",
+      }));
+    }
+  };
+
+  const isEditable =
+    incident?.status === "Open" || incident?.status === "In Progress";
 
   if (!incident) {
     return <Typography>Loading...</Typography>;
@@ -230,6 +295,28 @@ const DetailIncident = () => {
 
   return (
     <Box m="20px">
+      <div className="mb-5">
+      <Button onClick={getUserLocation}>Get User Location</Button>
+      {/* if the user location variable has a value, print the users location */}
+      {userLocation && (
+        <div>
+          <h2>User Location</h2>
+          <p>Latitude: {userLocation.latitude}</p>
+          <p>Longitude: {userLocation.longitude}</p>
+        </div>
+      )}
+        <Button
+          sx={{
+            backgroundColor: colors.blueAccent[700],
+            color: colors.grey[100],
+          }}
+          onClick={() => {
+            navigate("/incident");
+          }}
+        >
+          Back
+        </Button> 
+      </div>
       <Header
         title="INCIDENT DETAIL"
         subtitle="Detailed view of the Incident"
@@ -237,7 +324,7 @@ const DetailIncident = () => {
       <IncidentProgress status={incident.status} />
       <Grid item xs={12} mt="20px">
         <div className="flex space-x-4">
-          {incident?.status === "Open" && (
+          {incident?.status === "Open" ? (
             <>
               <Button
                 onClick={handleAccept}
@@ -246,29 +333,60 @@ const DetailIncident = () => {
               >
                 Accept
               </Button>
+              <Button onClick={handleReject} variant="outlined" color="error">
+                Reject
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={() => handleSave()}
+                variant="contained"
+                color="secondary"
+              >
+                Update Incident
+              </Button>
+              {incident?.status === "In Progress" && (
+                <>
+                  <Button
+                    onClick={handleResolve}
+                    variant="contained"
+                    color="info"
+                  >
+                    Resolve Incident
+                  </Button>
+                  {incident?.status !== "Escalated" && (
+                    <Button
+                      onClick={handleEscalate}
+                      variant="contained"
+                      color="warning"
+                    >
+                      Escalate Incident
+                    </Button>
+                  )}
+                </>
+              )}
+              <Button onClick={handleDelete} variant="contained" color="error">
+                Delete Incident
+              </Button>
+              <Button
+                onClick={handleReject}
+                variant="contained"
+                color="primary"
+              >
+                Reject
+              </Button>
+              {incident?.status === "Resolved" && (
+                <Button
+                  onClick={handleClose}
+                  variant="contained"
+                  color="primary"
+                >
+                  Close
+                </Button>
+              )}
             </>
           )}
-
-          <Button
-            onClick={() => handleSave(true)}
-            variant="contained"
-            color="secondary"
-            disabled={!isEditable}
-          >
-            Update Incident
-          </Button>
-          <Button onClick={handleResolve} variant="contained" color="info">
-            Resolve Incident
-          </Button>
-          <Button onClick={handleEscalate} variant="contained" color="warning">
-            Escalate Incident
-          </Button>
-          <Button onClick={handleDelete} variant="contained" color="error">
-            Delete Incident
-          </Button>
-          <Button onClick={handleReject} variant="contained" color="primary">
-            Reject
-          </Button>
         </div>
       </Grid>
       <Box m="40px 0">
@@ -340,6 +458,7 @@ const DetailIncident = () => {
           </Grid>
           <Grid item xs={6}>
             <Autocomplete
+              disabled={!isEditable}
               multiple
               options={incidentTypes}
               getOptionLabel={(option) => option.name}
@@ -354,6 +473,24 @@ const DetailIncident = () => {
                   fullWidth
                   margin="normal"
                   disabled={!isEditable}
+                />
+              )}
+            />
+            <Autocomplete
+              disabled={!isEditable}
+              multiple
+              options={teams}
+              getOptionLabel={(option) => option?.name}
+              value={teams?.filter((type) =>
+                incident?.teams.includes(type?.id)
+              )}
+              onChange={handleTeamsChange}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Teams"
+                  fullWidth
+                  margin="normal"
                 />
               )}
             />
@@ -428,6 +565,12 @@ const DetailIncident = () => {
           </Grid>
         </Grid>
       </Box>
+      {userLocation && (
+        <Box m="20px">
+        <MapComponent latitude={userLocation.latitude} longitude={userLocation.longitude}/>
+      </Box>
+      )}
+      
 
       <EscalateDialog
         open={escalateDialogOpen}
@@ -443,8 +586,10 @@ const DetailIncident = () => {
         onNewLevelChange={handleNewLevelChange}
       />
       <ResolveIncidentDialog
+        incident={incident}
         open={resolveDialogOpen}
         onClose={handleResolveClose}
+        save={handleSaveResolveClose}
         incidentId={id}
       />
     </Box>
@@ -455,4 +600,4 @@ export default DetailIncident;
 
 // TODO: Resolve BUTTON TO BE VISIBLE AND INVISIBLE
 // TODO: ESCALATE BUTTON TO BE VISIBLE AND INVISIBLE
-// TODO: UPDATE BUTTON TO BE REMOVE MAKE SAVE TO BE INSTANTENOUS
+// TODO: UPDATE BUTTON TO BE REMOVE MAKE  SAVE TO BE INSTANTENOUS

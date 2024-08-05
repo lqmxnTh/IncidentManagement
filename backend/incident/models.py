@@ -41,6 +41,7 @@ class Incident(models.Model):
     escalation_level = models.IntegerField(default=0)
     email = models.CharField(null=True, blank=True, max_length=250)
     incident_type = models.ManyToManyField(IncidentType,blank=True,default=None)
+    teams = models.ManyToManyField(Team,blank=True,default=None)
     
     def __str__(self):
         return self.title
