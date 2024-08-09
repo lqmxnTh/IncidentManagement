@@ -42,6 +42,8 @@ class Incident(models.Model):
     email = models.CharField(null=True, blank=True, max_length=250)
     incident_type = models.ManyToManyField(IncidentType,blank=True,default=None)
     teams = models.ManyToManyField(Team,blank=True,default=None)
+    latitude = models.FloatField(null=True,blank=True)
+    longitude = models.FloatField(null=True,blank=True)
     
     def __str__(self):
         return self.title

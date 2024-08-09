@@ -40,29 +40,7 @@ const DetailIncident = () => {
   const [previousLevel, setPreviousLevel] = useState(1);
   const [newLevel, setNewLevel] = useState(2);
   const navigate = useNavigate();
-  const [userLocation, setUserLocation] = useState(null);
-  const getUserLocation = () => {
-    // if geolocation is supported by the users browser
-    if (navigator.geolocation) {
-      // get the current users location
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // save the geolocation coordinates in two variables
-          const { latitude, longitude } = position.coords;
-          // update the value of userlocation variable
-          setUserLocation({ latitude, longitude });
-        },
-        // if there was an error getting the users location
-        (error) => {
-          console.error('Error getting user location:', error);
-        }
-      );
-    }
-    // if geolocation is not supported by the users browser
-    else {
-      console.error('Geolocation is not supported by this browser.');
-    }
-  };
+
   useEffect(() => {
     const fetchIncident = async () => {
       try {
@@ -296,15 +274,6 @@ const DetailIncident = () => {
   return (
     <Box m="20px">
       <div className="mb-5">
-      <Button onClick={getUserLocation}>Get User Location</Button>
-      {/* if the user location variable has a value, print the users location */}
-      {userLocation && (
-        <div>
-          <h2>User Location</h2>
-          <p>Latitude: {userLocation.latitude}</p>
-          <p>Longitude: {userLocation.longitude}</p>
-        </div>
-      )}
         <Button
           sx={{
             backgroundColor: colors.blueAccent[700],
@@ -315,7 +284,7 @@ const DetailIncident = () => {
           }}
         >
           Back
-        </Button> 
+        </Button>
       </div>
       <Header
         title="INCIDENT DETAIL"
@@ -565,12 +534,14 @@ const DetailIncident = () => {
           </Grid>
         </Grid>
       </Box>
-      {userLocation && (
+      {incident?.latitude && incident?.longitude && (
         <Box m="20px">
-        <MapComponent latitude={userLocation.latitude} longitude={userLocation.longitude}/>
-      </Box>
+          <MapComponent
+            latitude={incident?.latitude}
+            longitude={incident?.longitude}
+          />
+        </Box>
       )}
-      
 
       <EscalateDialog
         open={escalateDialogOpen}

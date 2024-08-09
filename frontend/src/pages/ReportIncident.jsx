@@ -22,6 +22,27 @@ export function ReportIncident() {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+  
+  const getUserLocation = (callback) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ latitude, longitude });
+          callback({ latitude, longitude });
+        },
+        (error) => {
+          console.error('Error getting user location:', error);
+          callback(null);
+        }
+      );
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+      callback(null);
+    }
+  };
+
   const [formData, setFormData] = useState({
     "user": user?.id,
     "title": "",
@@ -32,11 +53,12 @@ export function ReportIncident() {
     "classroom": null,
     "status": "Open",
     "team": [],
-    "email": ""
-});
+    "email": "",
+    "latitude": null,
+    "longitude": null,
+  });
 
   useEffect(() => {
-    // Fetch all faculties on mount
     axios
       .get(`${baseURL}/api/faculties/`)
       .then((response) => setFaculties(response.data))
@@ -45,7 +67,6 @@ export function ReportIncident() {
 
   useEffect(() => {
     if (formData.faculty) {
-      // Fetch buildings for the selected faculty
       axios
         .get(`${baseURL}/api/buildings/?faculty=${formData.faculty}`)
         .then((response) => setBuildings(response.data))
@@ -55,7 +76,6 @@ export function ReportIncident() {
 
   useEffect(() => {
     if (formData.building) {
-      // Fetch building details to get floor count
       axios
         .get(`${baseURL}/api/buildings/${formData.building}/`)
         .then((response) => {
@@ -68,7 +88,6 @@ export function ReportIncident() {
           console.error("Error fetching building details:", error)
         );
 
-      // Fetch classrooms for the selected building
       axios
         .get(`${baseURL}/api/classrooms/?building=${formData.building}`)
         .then((response) => setClassrooms(response.data))
@@ -78,7 +97,6 @@ export function ReportIncident() {
 
   useEffect(() => {
     if (formData.building && formData.floor !== "") {
-      // Fetch classrooms for the selected building and floor
       axios
         .get(
           `${baseURL}/api/classrooms/?building=${formData.building}&floor=${formData.floor}`
@@ -90,16 +108,13 @@ export function ReportIncident() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log("Handle change - name:", name, "value:", value);
     setFormData({ ...formData, [name]: value });
   };
 
   const handleSelectChange = (name, value) => {
-    // Convert value to integer if applicable
     const parsedValue = isNaN(value) ? value : parseInt(value, 10);
     setFormData({ ...formData, [name]: parsedValue });
   };
-  
 
   useEffect(() => {
     console.log("Form data:", formData);
@@ -107,17 +122,20 @@ export function ReportIncident() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      console.log(formData);
-      debugger
-      const response = await axios.post(`${baseURL}/api/incidents/`, formData);
-      console.log(response.data);
-      navigate("/");
-    } catch (error) {
-      console.error("Error reporting incident:", error.response);
-      console.log(error.response.data)
-      alert(error.response.data);
-    }
+    getUserLocation(async (location) => {
+      if (location) {
+        formData.latitude = location.latitude;
+        formData.longitude = location.longitude;
+      }
+      try {
+        const response = await axios.post(`${baseURL}/api/incidents/`, formData);
+        console.log(response.data);
+        navigate("/");
+      } catch (error) {
+        console.error("Error reporting incident:", error.response);
+        alert(error.response.data);
+      }
+    });
   };
 
   return (
@@ -173,7 +191,7 @@ export function ReportIncident() {
               onChange={(value) => handleSelectChange("faculty", value)}
               size="lg"
               className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              disabled={!faculties.length} // Disable until faculties are loaded
+              disabled={!faculties.length}
             >
               {faculties.length ? (
                 faculties.map((faculty) => (
@@ -195,7 +213,7 @@ export function ReportIncident() {
               onChange={(value) => handleSelectChange("building", value)}
               size="lg"
               className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              disabled={!buildings.length} // Disable until buildings are loaded
+              disabled={!buildings.length}
             >
               {buildings.length ? (
                 buildings.map((building) => (
@@ -217,7 +235,7 @@ export function ReportIncident() {
               onChange={(value) => handleSelectChange("floor", value)}
               size="lg"
               className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              disabled={!floors.length} // Disable until floors are loaded
+              disabled={!floors.length}
             >
               {floors.length ? (
                 floors.map((floor) => (
@@ -239,7 +257,7 @@ export function ReportIncident() {
               onChange={(value) => handleSelectChange("classroom", value)}
               size="lg"
               className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              disabled={!classrooms.length} // Disable until classrooms are loaded
+              disabled={!classrooms.length}
             >
               {classrooms.length ? (
                 classrooms.map((classroom) => (
