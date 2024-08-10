@@ -1,3 +1,4 @@
+from tkinter import NO
 from django.db import models
 from api.models import Profile, Team
 from location.models import Classroom, Faculty, Building
@@ -44,6 +45,7 @@ class Incident(models.Model):
     teams = models.ManyToManyField(Team,blank=True,default=None)
     latitude = models.FloatField(null=True,blank=True)
     longitude = models.FloatField(null=True,blank=True)
+    assigned_to = models.ManyToManyField(Profile,blank=True,default=None, related_name='assigned_incidents')
     
     def __str__(self):
         return self.title

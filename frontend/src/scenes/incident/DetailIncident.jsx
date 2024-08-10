@@ -39,6 +39,8 @@ const DetailIncident = () => {
   const [escalationType, setEscalationType] = useState("Functional");
   const [previousLevel, setPreviousLevel] = useState(1);
   const [newLevel, setNewLevel] = useState(2);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -116,6 +118,13 @@ const DetailIncident = () => {
       .catch((error) => console.error("Error fetching teams:", error));
   }, [baseURL]);
 
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/profiles/`)
+      .then((response) => setProfiles(response.data))
+      .catch((error) => console.error("Error fetching profiles:", error));
+  }, [baseURL]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setIncident((prevIncident) => ({
@@ -143,6 +152,12 @@ const DetailIncident = () => {
     setIncident((prevIncident) => ({
       ...prevIncident,
       teams: value.map((type) => type.id),
+    }));
+  };
+  const handleAssignedToChange = (event, value) => {
+    setIncident((prevIncident) => ({
+      ...prevIncident,
+      assigned_to: value.map((type) => type.id),
     }));
   };
 
@@ -263,6 +278,26 @@ const DetailIncident = () => {
       }));
     }
   };
+
+  const selectedTeams = incident?.teams
+
+  const newlyFilteredteam  = teams.filter(obj => selectedTeams.includes(obj.id));
+  console.log("New;y Filtered Teams",newlyFilteredteam)
+
+  function extractMembers(data) {
+    const allMembers = [];
+    data.forEach(obj => {
+      allMembers.push(...obj.members);
+    });
+    const uniqueMembers = [...new Set(allMembers)];
+  
+    return uniqueMembers;
+  }
+  const result = extractMembers(newlyFilteredteam);
+  console.log("Extracted team members",result)
+
+  const newlyFilteredProfiles  = profiles.filter(obj => result.includes(obj.id));
+  console.log("Filtered Profiles",newlyFilteredProfiles)
 
   const isEditable =
     incident?.status === "Open" || incident?.status === "In Progress";
@@ -458,6 +493,24 @@ const DetailIncident = () => {
                 <TextField
                   {...params}
                   label="Teams"
+                  fullWidth
+                  margin="normal"
+                />
+              )}
+            />
+            <Autocomplete
+              disabled={!isEditable}
+              multiple
+              options={newlyFilteredProfiles}
+              getOptionLabel={(option) => option?.user_name}
+              value={profiles?.filter((profile) =>
+                incident?.assigned_to.includes(profile?.id)
+              )}
+              onChange={handleAssignedToChange}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Assigned To"
                   fullWidth
                   margin="normal"
                 />

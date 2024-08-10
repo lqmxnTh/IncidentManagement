@@ -1,8 +1,12 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
-from .models import Incident, Resolution, EscalationHistory,IncidentType
-from .serializers import IncidentSerializer, ResolutionSerializer,IncidentTypeSerializer, EscalationHistorySerializer,AdvanceIncidentSerializer
+from .models import Incident, Resolution, EscalationHistory,IncidentType, Profile
+from .serializers import IncidentSerializer, ProfileSerializer, ResolutionSerializer,IncidentTypeSerializer, EscalationHistorySerializer,AdvanceIncidentSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
 
 # Create your views here.
 class IncidentListCreateView(generics.ListCreateAPIView):
@@ -30,3 +34,15 @@ class EscalationHistoryViewSet(viewsets.ModelViewSet):
 class IncidentTypeListView(generics.ListAPIView):
     queryset = IncidentType.objects.all()
     serializer_class = IncidentTypeSerializer
+    
+# class TeamMembersView(APIView):
+#     def post(self, request):
+#         team_ids = request.data.get('team_ids', [])
+        
+#         if not team_ids:
+#             return Response({"error": "No team IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         members = Profile.objects.filter(teams__in=team_ids).distinct()
+#         serializer = ProfileSerializer(members, many=True)
+        
+#         return Response(serializer.data, status=status.HTTP_200_OK)

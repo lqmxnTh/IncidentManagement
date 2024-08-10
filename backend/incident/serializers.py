@@ -67,6 +67,7 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
             'teams',
             'latitude',
             'longitude',
+            'assigned_to',
         ]
 
     def get_user_name(self, obj):
@@ -117,6 +118,7 @@ class IncidentSerializer(serializers.ModelSerializer):
             'teams',
             'latitude',
             'longitude',
+            'assigned_to',
             ]
 
 class ResolutionSerializer(serializers.ModelSerializer):
