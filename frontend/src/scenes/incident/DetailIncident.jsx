@@ -21,6 +21,7 @@ import EscalateDialog from "../../components/EscalateDialog";
 import ResolveIncidentDialog from "../../components/ResolveIncidentDialog";
 import { updateItemStatus } from "../../hooks/utils";
 import MapComponent from "../../components/MapComponent";
+import { useCookies } from "react-cookie";
 const DetailIncident = () => {
   const { id } = useParams();
   const baseURL = import.meta.env.VITE_API_URL;
@@ -42,7 +43,7 @@ const DetailIncident = () => {
   const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const navigate = useNavigate();
-
+  const [cookies] = useCookies(["csrftoken"]);
   useEffect(() => {
     const fetchIncident = async () => {
       try {
@@ -183,6 +184,40 @@ const DetailIncident = () => {
     setResolveDialogOpen(true);
   };
 
+  const handleSendMail = async () => {
+    console.log(cookies);
+    if (incident) {
+      try {
+        // Call the API to send emails with the CSRF token
+        const response = await axios.post(
+          `${baseURL}/api/incidents/${id}/send-mail/`,
+          {},
+          {
+            headers: {
+              "X-CSRFToken": "EHxKPGqz0S9xMYMvd95gAj5xtnueUgAB",
+            },
+          }
+        );
+
+        // Check for a successful response
+        if (response.status === 200) {
+          console.log("Emails sent successfully");
+          await updateItemStatus(baseURL, id, incident, "Assign");
+          setIncident((prevIncident) => ({
+            ...prevIncident,
+            status: "Assign",
+          }));
+        } else {
+          console.error("Failed to send emails");
+        }
+
+        // Update incident status
+      } catch (error) {
+        console.error("Error in sending emails:", error);
+      }
+    }
+  };
+
   const handleEscalate = () => {
     setEscalateDialogOpen(true);
   };
@@ -279,25 +314,29 @@ const DetailIncident = () => {
     }
   };
 
-  const selectedTeams = incident?.teams
+  const selectedTeams = incident?.teams;
 
-  const newlyFilteredteam  = teams.filter(obj => selectedTeams.includes(obj.id));
-  console.log("New;y Filtered Teams",newlyFilteredteam)
+  const newlyFilteredteam = teams.filter((obj) =>
+    selectedTeams?.includes(obj.id)
+  );
+  console.log("New;y Filtered Teams", newlyFilteredteam);
 
   function extractMembers(data) {
     const allMembers = [];
-    data.forEach(obj => {
+    data.forEach((obj) => {
       allMembers.push(...obj.members);
     });
     const uniqueMembers = [...new Set(allMembers)];
-  
+
     return uniqueMembers;
   }
   const result = extractMembers(newlyFilteredteam);
-  console.log("Extracted team members",result)
+  console.log("Extracted team members", result);
 
-  const newlyFilteredProfiles  = profiles.filter(obj => result.includes(obj.id));
-  console.log("Filtered Profiles",newlyFilteredProfiles)
+  const newlyFilteredProfiles = profiles.filter((obj) =>
+    result.includes(obj.id)
+  );
+  console.log("Filtered Profiles", newlyFilteredProfiles);
 
   const isEditable =
     incident?.status === "Open" || incident?.status === "In Progress";
@@ -358,6 +397,13 @@ const DetailIncident = () => {
                     color="info"
                   >
                     Resolve Incident
+                  </Button>
+                  <Button
+                    onClick={handleSendMail}
+                    variant="contained"
+                    color="info"
+                  >
+                    Assign Members
                   </Button>
                   {incident?.status !== "Escalated" && (
                     <Button

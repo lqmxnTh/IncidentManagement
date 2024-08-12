@@ -30,7 +30,7 @@ const CustomStepLabel = styled(StepLabel)(({ theme }) => ({
 
 const IncidentProgress = ({ status }) => {
   let wasEcalated = false
-  let steps = ['Open', 'In Progress', 'Resolved', 'Closed'];
+  let steps = ['Open', 'In Progress','Assign', 'Resolved', 'Closed'];
 
   if (status === 'Rejected') {
     steps.push('Rejected');
@@ -40,7 +40,7 @@ const IncidentProgress = ({ status }) => {
     wasEcalated = true;
   }
   if(wasEcalated){
-    steps = ['Open', 'In Progress','Escalated', 'Resolved', 'Closed'];
+    steps = ['Open', 'In Progress','Assign','Escalated', 'Resolved', 'Closed'];
   }
 
   const statusIndex = steps.indexOf(status);

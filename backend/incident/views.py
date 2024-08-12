@@ -6,8 +6,9 @@ from .serializers import IncidentSerializer, ProfileSerializer, ResolutionSerial
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-
+from django.core.mail import send_mail
+from django.conf import settings
+from django.http import JsonResponse
 # Create your views here.
 class IncidentListCreateView(generics.ListCreateAPIView):
     queryset = Incident.objects.all()
@@ -34,15 +35,25 @@ class EscalationHistoryViewSet(viewsets.ModelViewSet):
 class IncidentTypeListView(generics.ListAPIView):
     queryset = IncidentType.objects.all()
     serializer_class = IncidentTypeSerializer
-    
-# class TeamMembersView(APIView):
-#     def post(self, request):
-#         team_ids = request.data.get('team_ids', [])
-        
-#         if not team_ids:
-#             return Response({"error": "No team IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
-        
-#         members = Profile.objects.filter(teams__in=team_ids).distinct()
-#         serializer = ProfileSerializer(members, many=True)
-        
-#         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class SendAssignmentEmail(APIView):
+    def post(self, request, incident_id):
+        if request.method == 'POST':
+            # Fetch incident details
+            incident = Incident.objects.get(id=incident_id)
+            
+            # Assume incident.assigned_to is a list of profiles
+            assigned_profiles = incident.assigned_to.all()
+            
+            # Prepare the email content
+            subject = f"Incident {incident.title} Assignment"
+            message = f"You have been assigned to the incident: {incident.title}.\n\nDescription:\n{incident.description}"
+            from_email = settings.EMAIL_HOST_USER
+            
+            # Send an email to each assigned member
+            for profile in assigned_profiles:
+                recipient_list = [profile.user.username]
+                send_mail(subject, message, from_email, recipient_list)
+            
+            return JsonResponse({"message": "Emails sent successfully"}, status=200)
+        return JsonResponse({"error": "Invalid request"}, status=400)

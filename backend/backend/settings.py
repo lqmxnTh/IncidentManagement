@@ -137,3 +137,14 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+# Email settings
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'luqmanthupsee7@gmail.com'
+EMAIL_HOST_PASSWORD = 'ocpe vjmw clef cdab'
+# DEFAULT_FROM_EMAIL = 'muhammad.thupsee@umail.uom.ac.mu'
+# EMAIL_USE_SSL = False

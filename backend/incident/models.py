@@ -1,4 +1,3 @@
-from tkinter import NO
 from django.db import models
 from api.models import Profile, Team
 from location.models import Classroom, Faculty, Building
@@ -14,6 +13,7 @@ class Incident(models.Model):
     STATUS_CHOICES = [
         ('Open', 'Open'),
         ('In Progress', 'In Progress'),
+        ('Assign', 'Assign'),
         ('Resolved', 'Resolved'),
         ('Closed', 'Closed'),
         ('Escalated', 'Escalated'),
@@ -58,6 +58,8 @@ class Incident(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+    
+    
 
 class Resolution(models.Model):
     incident = models.OneToOneField(Incident, on_delete=models.CASCADE, related_name='resolution')
