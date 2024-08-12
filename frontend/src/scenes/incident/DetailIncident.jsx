@@ -483,6 +483,7 @@ const DetailIncident = () => {
               >
                 <MenuItem value="Open">Open</MenuItem>
                 <MenuItem value="In Progress">In Progress</MenuItem>
+                <MenuItem value="Assign">Assign</MenuItem>
                 <MenuItem value="Resolved">Resolved</MenuItem>
                 <MenuItem value="Closed">Closed</MenuItem>
                 <MenuItem value="Escalated">Escalated</MenuItem>
