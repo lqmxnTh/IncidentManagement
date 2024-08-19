@@ -22,7 +22,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     class Meta:
         model = Profile
-        fields = ['id','user','user_name','role']
+        fields = ['id','user','user_name','role','staff']
     
     def get_user_name(self, obj):
         return obj.user.username if obj.user else None

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Incident, Resolution,EscalationHistory,IncidentType
+from .models import Incident, Resolution,EscalationHistory,IncidentType, Task
 from api.models import *
 from location.models import *
 from django.contrib.auth.models import User
@@ -68,6 +68,8 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
             'latitude',
             'longitude',
             'assigned_to',
+            'accepted',
+            # 'resolutions',
         ]
 
     def get_user_name(self, obj):
@@ -119,6 +121,8 @@ class IncidentSerializer(serializers.ModelSerializer):
             'latitude',
             'longitude',
             'assigned_to',
+            'accepted',
+            # 'resolutions',
             ]
 
 class ResolutionSerializer(serializers.ModelSerializer):
@@ -134,4 +138,9 @@ class EscalationHistorySerializer(serializers.ModelSerializer):
 class IncidentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = IncidentType
+        fields = '__all__'
+
+class TaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
         fields = '__all__'

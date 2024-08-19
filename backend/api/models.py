@@ -14,6 +14,7 @@ class Role(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
     role = models.ManyToManyField(Role,blank=True,default=None)
+    staff = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.username

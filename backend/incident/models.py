@@ -1,3 +1,5 @@
+from tkinter import NO
+from turtle import mode
 from django.db import models
 from api.models import Profile, Team
 from location.models import Classroom, Faculty, Building
@@ -46,6 +48,8 @@ class Incident(models.Model):
     latitude = models.FloatField(null=True,blank=True)
     longitude = models.FloatField(null=True,blank=True)
     assigned_to = models.ManyToManyField(Profile,blank=True,default=None, related_name='assigned_incidents')
+    accepted = models.ManyToManyField(Profile,blank=True,default=None, related_name='accepted')
+    # resolutions = models.ManyToManyField(Resolution,blank=True,default=None)
     
     def __str__(self):
         return self.title
@@ -59,18 +63,16 @@ class Incident(models.Model):
         self.clean()
         super().save(*args, **kwargs)
     
-    
-
 class Resolution(models.Model):
-    incident = models.OneToOneField(Incident, on_delete=models.CASCADE, related_name='resolution')
-    resolved_by = models.ManyToManyField(Team, blank=True,default=None)
+    incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='resolutions')
+    teams = models.ManyToManyField(Team, blank=True,default=None)
     resolution_notes = models.TextField()
     resolution_date = models.DateTimeField(auto_now_add=True)
     resolution_time = models.DurationField()
 
     def __str__(self):
-        return f'Resolution for {self.incident.title}'
-
+        return f'Resolution {self.id} for {self.incident.title} - {self.resolution_notes}'
+    
 class EscalationHistory(models.Model):
     ESCALATION_TYPE_CHOICES = [
         ('Functional', 'Functional'),
@@ -87,3 +89,9 @@ class EscalationHistory(models.Model):
 
     def __str__(self):
         return f'Escalation for {self.incident.title}'
+
+class Task(models.Model):
+    name = models.CharField(max_length=200)
+    incident = models.ForeignKey(Incident,blank=True,null=True,on_delete=models.CASCADE)
+    profile = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
+    accepted = models.BooleanField(default=False)

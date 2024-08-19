@@ -13,6 +13,8 @@ import {
   FormControl,
   Grid,
   InputLabel,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
@@ -22,11 +24,14 @@ import ResolveIncidentDialog from "../../components/ResolveIncidentDialog";
 import { updateItemStatus } from "../../hooks/utils";
 import MapComponent from "../../components/MapComponent";
 import { useCookies } from "react-cookie";
+import { DataGrid } from "@mui/x-data-grid";
 const DetailIncident = () => {
   const { id } = useParams();
   const baseURL = import.meta.env.VITE_API_URL;
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [resolutions, setResolutions] = useState(null);
+  const [resolutionsReset, setResolutionsReset] = useState(false);
   const [incident, setIncident] = useState(null);
   const [faculties, setFaculties] = useState([]);
   const [buildings, setBuildings] = useState([]);
@@ -40,10 +45,77 @@ const DetailIncident = () => {
   const [escalationType, setEscalationType] = useState("Functional");
   const [previousLevel, setPreviousLevel] = useState(1);
   const [newLevel, setNewLevel] = useState(2);
-  const [selectedTeamMembers, setSelectedTeamMembers] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const navigate = useNavigate();
   const [cookies] = useCookies(["csrftoken"]);
+  const [value, setValue] = React.useState(0);
+  const handleChange = (event, newValue) => {
+    setValue(newValue);
+  };
+  const TeamsCells = ({ teamsIds, allTeams }) => {
+    const teamIds = teamsIds
+      ?.map((id) => allTeams.find((team) => team.id === id)?.name)
+      .filter(Boolean);
+  
+    return (
+      <Box
+        display="flex"
+        flexWrap="wrap"
+        gap={1}
+        alignItems="center"
+        height={"100%"}
+      >
+        {teamIds?.map((mem, index) => (
+          <Box
+            key={index}
+            component="span"
+            sx={{
+              backgroundColor: "rgba(149, 165, 166)",
+              borderRadius: "12px",
+              padding: "4px 8px",
+              margin: "2px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="body2">{mem}</Typography>
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+  
+  const columns = [
+    { field: "id", headerName: "ID" },
+    {
+      field: "resolution_notes",
+      headerName: "Notes",
+      flex: 1,
+      cellClassName: "title-column--cell",
+    },
+    {
+      field: "resolution_time",
+      headerName: "Resolution Time",
+      flex: 2,
+    },
+    {
+      field: "resolution_date",
+      headerName: "Resolution Date",
+      flex: 1,
+    },
+    {
+      field: "teams",
+      headerName: "Teams",
+      flex: 1,
+      renderCell: (params) => (
+        <TeamsCells
+        teamsIds={params.value}
+        allTeams={teams}
+        />
+      ),
+    },
+    
+  ];
   useEffect(() => {
     const fetchIncident = async () => {
       try {
@@ -63,6 +135,14 @@ const DetailIncident = () => {
       .then((response) => setFaculties(response.data))
       .catch((error) => console.error("Error fetching faculties:", error));
   }, [baseURL]);
+  
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/resolutions/incident/${id}`)
+      .then((response) => setResolutions(response.data))
+      .catch((error) => console.error("Error fetching resolutions:", error));
+  }, [resolutionsReset,baseURL]);
+
 
   useEffect(() => {
     if (incident && incident.faculty) {
@@ -185,7 +265,6 @@ const DetailIncident = () => {
   };
 
   const handleSendMail = async () => {
-    console.log(cookies);
     if (incident) {
       try {
         // Call the API to send emails with the CSRF token
@@ -281,6 +360,7 @@ const DetailIncident = () => {
         ...prevIncident,
         status: "Resolved",
       }));
+      setResolutionsReset(true)
     }
   };
 
@@ -319,7 +399,6 @@ const DetailIncident = () => {
   const newlyFilteredteam = teams.filter((obj) =>
     selectedTeams?.includes(obj.id)
   );
-  console.log("New;y Filtered Teams", newlyFilteredteam);
 
   function extractMembers(data) {
     const allMembers = [];
@@ -331,12 +410,10 @@ const DetailIncident = () => {
     return uniqueMembers;
   }
   const result = extractMembers(newlyFilteredteam);
-  console.log("Extracted team members", result);
 
   const newlyFilteredProfiles = profiles.filter((obj) =>
     result.includes(obj.id)
   );
-  console.log("Filtered Profiles", newlyFilteredProfiles);
 
   const isEditable =
     incident?.status === "Open" || incident?.status === "In Progress";
@@ -367,281 +444,325 @@ const DetailIncident = () => {
       <IncidentProgress status={incident.status} />
       <Grid item xs={12} mt="20px">
         <div className="flex space-x-4">
-          {incident?.status === "Open" ? (
+          {/* {incident?.status === "Open" ? ( */}
+          <>
+            <Button
+              onClick={handleAccept}
+              variant="contained"
+              color="secondary"
+            >
+              Accept
+            </Button>
+            <Button onClick={handleReject} variant="outlined" color="error">
+              Reject
+            </Button>
+          </>
+          {/* ) : ( */}
+          <>
+            <Button
+              onClick={() => handleSave()}
+              variant="contained"
+              color="secondary"
+            >
+              Update Incident
+            </Button>
+            {/* {incident?.status === "In Progress" && ( */}
             <>
+              <Button onClick={handleResolve} variant="contained" color="info">
+                Resolve Incident
+              </Button>
+              <Button onClick={handleSendMail} variant="contained" color="info">
+                Assign Members
+              </Button>
+              {/* {incident?.status !== "Escalated" && ( */}
               <Button
-                onClick={handleAccept}
+                onClick={handleEscalate}
                 variant="contained"
-                color="secondary"
+                color="warning"
               >
-                Accept
+                Escalate Incident
               </Button>
-              <Button onClick={handleReject} variant="outlined" color="error">
-                Reject
-              </Button>
+              {/* )} */}
             </>
-          ) : (
-            <>
-              <Button
-                onClick={() => handleSave()}
-                variant="contained"
-                color="secondary"
-              >
-                Update Incident
-              </Button>
-              {incident?.status === "In Progress" && (
-                <>
-                  <Button
-                    onClick={handleResolve}
-                    variant="contained"
-                    color="info"
-                  >
-                    Resolve Incident
-                  </Button>
-                  <Button
-                    onClick={handleSendMail}
-                    variant="contained"
-                    color="info"
-                  >
-                    Assign Members
-                  </Button>
-                  {incident?.status !== "Escalated" && (
-                    <Button
-                      onClick={handleEscalate}
-                      variant="contained"
-                      color="warning"
-                    >
-                      Escalate Incident
-                    </Button>
-                  )}
-                </>
-              )}
-              <Button onClick={handleDelete} variant="contained" color="error">
-                Delete Incident
-              </Button>
-              <Button
-                onClick={handleReject}
-                variant="contained"
-                color="primary"
-              >
-                Reject
-              </Button>
-              {incident?.status === "Resolved" && (
-                <Button
-                  onClick={handleClose}
-                  variant="contained"
-                  color="primary"
-                >
-                  Close
-                </Button>
-              )}
-            </>
-          )}
+            {/* )} */}
+            <Button onClick={handleDelete} variant="contained" color="error">
+              Delete Incident
+            </Button>
+            <Button onClick={handleReject} variant="contained" color="primary">
+              Reject
+            </Button>
+            {/* {incident?.status === "Resolved" && ( */}
+            <Button onClick={handleClose} variant="contained" color="primary">
+              Close
+            </Button>
+            {/* )} */}
+          </>
+          {/* )} */}
         </div>
       </Grid>
-      <Box m="40px 0">
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <TextField
-              label="Title"
-              name="title"
-              value={incident.title}
-              onChange={handleInputChange}
-              fullWidth
-              margin="normal"
-              disabled={!isEditable}
-            />
-            <TextField
-              label="Description"
-              name="description"
-              value={incident.description}
-              onChange={handleInputChange}
-              fullWidth
-              margin="normal"
-              multiline
-              rows={4}
-              disabled={!isEditable}
-            />
-            <TextField
-              label="User"
-              name="user_name"
-              disabled={true}
-              value={incident.user_name}
-              onChange={handleInputChange}
-              fullWidth
-              margin="normal"
-            />
-            <FormControl fullWidth margin="normal" disabled={!isEditable}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                label="Status"
-                name="status"
-                value={incident.status}
-                onChange={handleSelectChange}
-                fullWidth
-                margin="normal"
-              >
-                <MenuItem value="Open">Open</MenuItem>
-                <MenuItem value="In Progress">In Progress</MenuItem>
-                <MenuItem value="Assign">Assign</MenuItem>
-                <MenuItem value="Resolved">Resolved</MenuItem>
-                <MenuItem value="Closed">Closed</MenuItem>
-                <MenuItem value="Escalated">Escalated</MenuItem>
-                <MenuItem value="Rejected">Rejected</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal" disabled={!isEditable}>
-              <InputLabel>Priority</InputLabel>
-              <Select
-                label="Priority"
-                name="priority"
-                value={incident.priority}
-                onChange={handleSelectChange}
-                fullWidth
-                margin="normal"
-              >
-                <MenuItem value="Low">Low</MenuItem>
-                <MenuItem value="Medium">Medium</MenuItem>
-                <MenuItem value="High">High</MenuItem>
-                <MenuItem value="Critical">Critical</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={6}>
-            <Autocomplete
-              disabled={!isEditable}
-              multiple
-              options={incidentTypes}
-              getOptionLabel={(option) => option.name}
-              value={incidentTypes.filter((type) =>
-                incident.incident_type.includes(type.id)
-              )}
-              onChange={handleIncidentTypeChange}
-              renderInput={(params) => (
+
+      <Grid item xs={12}>
+        <Tabs
+          className="mt-7"
+          value={value}
+          onChange={handleChange}
+          aria-label="incident details tabs"
+          sx={{
+            "& .MuiTab-root": {
+              color: "#ffffff", // Default text color
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#115293", // Hover background color
+              },
+              "&.Mui-selected": {
+                color: "#1976d2", // Text color of selected tab
+                backgroundColor: "#ffffff", // Background color of selected tab
+              },
+            },
+          }}
+        >
+          <Tab label="Details" />
+          <Tab sx={{ marginLeft: "15px" }} label="Resolutions" />
+        </Tabs>
+        <TabPanel value={value} index={0}>
+          <Box >
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
                 <TextField
-                  {...params}
-                  label="Incident Type"
+                  label="Title"
+                  name="title"
+                  value={incident.title}
+                  onChange={handleInputChange}
                   fullWidth
                   margin="normal"
                   disabled={!isEditable}
                 />
-              )}
-            />
-            <Autocomplete
-              disabled={!isEditable}
-              multiple
-              options={teams}
-              getOptionLabel={(option) => option?.name}
-              value={teams?.filter((type) =>
-                incident?.teams.includes(type?.id)
-              )}
-              onChange={handleTeamsChange}
-              renderInput={(params) => (
                 <TextField
-                  {...params}
-                  label="Teams"
+                  label="Description"
+                  name="description"
+                  value={incident.description}
+                  onChange={handleInputChange}
+                  fullWidth
+                  margin="normal"
+                  multiline
+                  rows={4}
+                  disabled={!isEditable}
+                />
+                <TextField
+                  label="User"
+                  name="user_name"
+                  disabled={true}
+                  value={incident.user_name}
+                  onChange={handleInputChange}
                   fullWidth
                   margin="normal"
                 />
-              )}
-            />
-            <Autocomplete
-              disabled={!isEditable}
-              multiple
-              options={newlyFilteredProfiles}
-              getOptionLabel={(option) => option?.user_name}
-              value={profiles?.filter((profile) =>
-                incident?.assigned_to.includes(profile?.id)
-              )}
-              onChange={handleAssignedToChange}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Assigned To"
-                  fullWidth
-                  margin="normal"
+                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    label="Status"
+                    name="status"
+                    value={incident.status}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    <MenuItem value="Open">Open</MenuItem>
+                    <MenuItem value="In Progress">In Progress</MenuItem>
+                    <MenuItem value="Assign">Assign</MenuItem>
+                    <MenuItem value="Resolved">Resolved</MenuItem>
+                    <MenuItem value="Closed">Closed</MenuItem>
+                    <MenuItem value="Escalated">Escalated</MenuItem>
+                    <MenuItem value="Rejected">Rejected</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                  <InputLabel>Priority</InputLabel>
+                  <Select
+                    label="Priority"
+                    name="priority"
+                    value={incident.priority}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    <MenuItem value="Low">Low</MenuItem>
+                    <MenuItem value="Medium">Medium</MenuItem>
+                    <MenuItem value="High">High</MenuItem>
+                    <MenuItem value="Critical">Critical</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <Autocomplete
+                  disabled={!isEditable}
+                  multiple
+                  options={incidentTypes}
+                  getOptionLabel={(option) => option.name}
+                  value={incidentTypes.filter((type) =>
+                    incident.incident_type.includes(type.id)
+                  )}
+                  onChange={handleIncidentTypeChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Incident Type"
+                      fullWidth
+                      margin="normal"
+                      disabled={!isEditable}
+                    />
+                  )}
                 />
-              )}
-            />
-            <FormControl fullWidth margin="normal" disabled={!isEditable}>
-              <InputLabel>Faculty</InputLabel>
-              <Select
-                label="Faculty"
-                name="faculty"
-                value={incident.faculty}
-                onChange={handleSelectChange}
-                fullWidth
-                margin="normal"
-              >
-                {faculties.map((faculty) => (
-                  <MenuItem key={faculty.id} value={faculty.id}>
-                    {faculty.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal" disabled={!isEditable}>
-              <InputLabel>Building</InputLabel>
-              <Select
-                label="Building"
-                name="building"
-                value={incident.building}
-                onChange={handleSelectChange}
-                fullWidth
-                margin="normal"
-              >
-                {buildings.map((building) => (
-                  <MenuItem key={building.id} value={building.id}>
-                    {building.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal" disabled={!isEditable}>
-              <InputLabel>Floor</InputLabel>
-              <Select
-                label="Floor"
-                name="floor"
-                value={incident.floor}
-                onChange={handleSelectChange}
-                fullWidth
-                margin="normal"
-              >
-                {floors.map((floor) => (
-                  <MenuItem key={floor} value={floor}>
-                    {floor}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal" disabled={!isEditable}>
-              <InputLabel>Classroom</InputLabel>
-              <Select
-                label="Classroom"
-                name="classroom"
-                value={incident.classroom}
-                onChange={handleSelectChange}
-                fullWidth
-                margin="normal"
-              >
-                {classrooms.map((classroom) => (
-                  <MenuItem key={classroom.id} value={classroom.id}>
-                    {classroom.number}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+                <Autocomplete
+                  disabled={!isEditable}
+                  multiple
+                  options={teams}
+                  getOptionLabel={(option) => option?.name}
+                  value={teams?.filter((type) =>
+                    incident?.teams.includes(type?.id)
+                  )}
+                  onChange={handleTeamsChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Teams"
+                      fullWidth
+                      margin="normal"
+                    />
+                  )}
+                />
+                <Autocomplete
+                  disabled={!isEditable}
+                  multiple
+                  options={newlyFilteredProfiles}
+                  getOptionLabel={(option) => option?.user_name}
+                  value={profiles?.filter((profile) =>
+                    incident?.assigned_to.includes(profile?.id)
+                  )}
+                  onChange={handleAssignedToChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Assigned To"
+                      fullWidth
+                      margin="normal"
+                    />
+                  )}
+                />
+                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                  <InputLabel>Faculty</InputLabel>
+                  <Select
+                    label="Faculty"
+                    name="faculty"
+                    value={incident.faculty}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    {faculties.map((faculty) => (
+                      <MenuItem key={faculty.id} value={faculty.id}>
+                        {faculty.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                  <InputLabel>Building</InputLabel>
+                  <Select
+                    label="Building"
+                    name="building"
+                    value={incident.building}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    {buildings.map((building) => (
+                      <MenuItem key={building.id} value={building.id}>
+                        {building.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                  <InputLabel>Floor</InputLabel>
+                  <Select
+                    label="Floor"
+                    name="floor"
+                    value={incident.floor}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    {floors.map((floor) => (
+                      <MenuItem key={floor} value={floor}>
+                        {floor}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                  <InputLabel>Classroom</InputLabel>
+                  <Select
+                    label="Classroom"
+                    name="classroom"
+                    value={incident.classroom}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    {classrooms.map((classroom) => (
+                      <MenuItem key={classroom.id} value={classroom.id}>
+                        {classroom.number}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+          {incident?.latitude && incident?.longitude && (
+            <Box className="mt-7">
+              <MapComponent
+                latitude={incident?.latitude}
+                longitude={incident?.longitude}
+              />
+            </Box>
+          )}
+        </TabPanel>
+        <TabPanel value={value} index={1}>
+        <Box
+        m="40px 0 0 0"
+        height="100vh"
+        sx={{
+          "& .MuiDataGrid-root": {
+            border: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            borderBottom: "none",
+          },
+          "& .title-column--cell": {
+            color: colors.greenAccent[300],
+          },
+          "& .MuiDataGrid-columnHeaders": {
+            backgroundColor: colors.blueAccent[700],
+            borderBottom: "none",
+          },
+          "& .MuiDataGrid-virtualScroller": {
+            backgroundColor: colors.primary[400],
+          },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "none",
+            backgroundColor: colors.blueAccent[700],
+          },
+          "& .MuiCheckbox-root": {
+            color: `${colors.greenAccent[200]} !important`,
+          },
+        }}
+      >
+        <DataGrid autoPageSize className="cursor-pointer" rows={resolutions} columns={columns} />
       </Box>
-      {incident?.latitude && incident?.longitude && (
-        <Box m="20px">
-          <MapComponent
-            latitude={incident?.latitude}
-            longitude={incident?.longitude}
-          />
-        </Box>
-      )}
+        </TabPanel>
+      </Grid>
 
       <EscalateDialog
         open={escalateDialogOpen}
@@ -661,12 +782,27 @@ const DetailIncident = () => {
         open={resolveDialogOpen}
         onClose={handleResolveClose}
         save={handleSaveResolveClose}
+        teams={incident?.teams}
         incidentId={id}
       />
     </Box>
   );
 };
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
 
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ marginTop:'10px' }}>{children}</Box>}
+    </div>
+  );
+}
 export default DetailIncident;
 
 // TODO: Resolve BUTTON TO BE VISIBLE AND INVISIBLE
