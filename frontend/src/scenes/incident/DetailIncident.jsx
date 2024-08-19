@@ -47,7 +47,7 @@ const DetailIncident = () => {
   const [newLevel, setNewLevel] = useState(2);
   const [profiles, setProfiles] = useState([]);
   const navigate = useNavigate();
-  const [cookies] = useCookies(["csrftoken"]);
+  const [emailLoading, setEmailLoading] = useState(false);
   const [value, setValue] = React.useState(0);
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -266,6 +266,7 @@ const DetailIncident = () => {
 
   const handleSendMail = async () => {
     if (incident) {
+      setEmailLoading(true)
       try {
         // Call the API to send emails with the CSRF token
         const response = await axios.post(
@@ -293,6 +294,8 @@ const DetailIncident = () => {
         // Update incident status
       } catch (error) {
         console.error("Error in sending emails:", error);
+      } finally {
+        setEmailLoading(false); // Hide spinner and re-enable page
       }
     }
   };
@@ -424,6 +427,14 @@ const DetailIncident = () => {
 
   return (
     <Box m="20px">
+      {emailLoading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
+          <div className="mt-4 text-white">Loading...</div>
+        </div>
+      </div>
+      )}
       <div className="mb-5">
         <Button
           sx={{
