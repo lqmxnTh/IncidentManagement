@@ -2,21 +2,46 @@ import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
 import { mockTransactions } from "../../data/mockData";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import EmailIcon from "@mui/icons-material/Email";
-import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import TrafficIcon from "@mui/icons-material/Traffic";
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import ErrorIcon from '@mui/icons-material/Error';
 import Header from "../../components/Header";
 import LineChart from "../../components/LineChart";
 import GeographyChart from "../../components/GeographyChart";
 import BarChart from "../../components/BarChart";
 import StatBox from "../../components/StatBox";
 import ProgressCircle from "../../components/ProgressCircle";
+import { useEffect, useState } from "react";
+import CampaignIcon from '@mui/icons-material/Campaign';
+import axios from "axios";
+import { formatDate } from "../../hooks/utils";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [incident, setIncident] = useState([]);
+  const navigate = useNavigate();
+  const baseURL = import.meta.env.VITE_API_URL;
+  useEffect(() => {
+    const fetchIncidents = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/view-only-incidents/`);
+        setIncident(response.data.reverse());
+      } catch (error) {
+        console.error("Failed to fetch team details:", error);
+      }
+    };
 
+    fetchIncidents();
+  }, [baseURL]);
+  // if (incident){
+    let numberOfIncident = incident?.length
+    let numberOfOpenIncident = incident?.filter(rec => rec.status === "Open").length
+    let numberOfClosedIncident = incident?.filter(rec => rec.status === "Closed").length
+    let numberOfCriticalIncident = incident?.filter(rec => rec.priority === "Critical").length
+  // }
+  
   return (
     <Box m="20px">
       {/* HEADER */}
@@ -55,31 +80,32 @@ const Dashboard = () => {
           justifyContent="center"
         >
           <StatBox
-            title="12,361"
-            subtitle="Emails Sent"
-            progress="0.75"
-            increase="+14%"
-            icon={
-              <EmailIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="431,225"
-            subtitle="Sales Obtained"
+            title={numberOfIncident}
+            subtitle="Number of Incident Received"
             progress="0.50"
-            increase="+21%"
+            // increase="+14%"
             icon={
-              <PointOfSaleIcon
+              <CampaignIcon
+                sx={{ color: colors.greenAccent[600], fontSize: "30px" }}
+              />
+            }
+          />
+        </Box>
+        <Box
+          gridColumn="span 3"
+          backgroundColor={colors.primary[400]}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <StatBox
+            title={numberOfOpenIncident}
+            subtitle="Number of Incidents Open"
+            progressCircle={true}
+            progress={numberOfOpenIncident/numberOfIncident}
+            increase={(numberOfOpenIncident*100/numberOfIncident).toFixed(0)+"%"}
+            icon={
+              <LockOpenIcon
                 sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
               />
             }
@@ -93,12 +119,13 @@ const Dashboard = () => {
           justifyContent="center"
         >
           <StatBox
-            title="32,441"
-            subtitle="New Clients"
-            progress="0.30"
-            increase="+5%"
+            title={numberOfClosedIncident}
+            subtitle="Number of Incidents Closed"
+            progress={numberOfClosedIncident/numberOfIncident}
+            increase={(numberOfClosedIncident*100/numberOfIncident).toFixed(0)+"%"}
+            progressCircle={true}
             icon={
-              <PersonAddIcon
+              <TaskAltIcon
                 sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
               />
             }
@@ -112,12 +139,13 @@ const Dashboard = () => {
           justifyContent="center"
         >
           <StatBox
-            title="1,325,134"
-            subtitle="Traffic Received"
-            progress="0.80"
-            increase="+43%"
+            title={numberOfCriticalIncident}
+            subtitle="Number of Incidents Critical"
+            progress={numberOfCriticalIncident/numberOfIncident}
+            increase={(numberOfCriticalIncident*100/numberOfIncident).toFixed(0)+"%"}
+            progressCircle={true}
             icon={
-              <TrafficIcon
+              <ErrorIcon
                 sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
               />
             }
@@ -180,17 +208,21 @@ const Dashboard = () => {
             p="15px"
           >
             <Typography color={colors.grey[100]} variant="h5" fontWeight="600">
-              Recent Transactions
+              Recent Incidents
             </Typography>
           </Box>
-          {mockTransactions.map((transaction, i) => (
+          {incident.slice(0,5).map((transaction,i) => (
             <Box
-              key={`${transaction.txId}-${i}`}
+            className="cursor-pointer"
+              key={`${transaction.id}-${i}`}
               display="flex"
               justifyContent="space-between"
               alignItems="center"
               borderBottom={`4px solid ${colors.primary[500]}`}
               p="15px"
+              onClick={()=>{
+                navigate(`/incidents/${transaction.id}`);
+              }}
             >
               <Box>
                 <Typography
@@ -198,26 +230,27 @@ const Dashboard = () => {
                   variant="h5"
                   fontWeight="600"
                 >
-                  {transaction.txId}
+                  {transaction.title}
                 </Typography>
                 <Typography color={colors.grey[100]}>
-                  {transaction.user}
+                  {transaction.user_name}
                 </Typography>
+                <Box color={colors.grey[100]}>{formatDate(transaction.created_at)}</Box>
               </Box>
-              <Box color={colors.grey[100]}>{transaction.date}</Box>
+              
               <Box
                 backgroundColor={colors.greenAccent[500]}
                 p="5px 10px"
                 borderRadius="4px"
               >
-                ${transaction.cost}
+                {transaction.status}
               </Box>
             </Box>
           ))}
         </Box>
 
         {/* ROW 3 */}
-        <Box
+        {/* <Box
           gridColumn="span 4"
           gridRow="span 2"
           backgroundColor={colors.primary[400]}
@@ -275,7 +308,7 @@ const Dashboard = () => {
           <Box height="200px">
             <GeographyChart isDashboard={true} />
           </Box>
-        </Box>
+        </Box> */}
       </Box>
     </Box>
   );

@@ -28,6 +28,8 @@ import NewTeam from "./scenes/team/NewTeam";
 import DetailDepartment from "./scenes/department/DetailDepartment";
 import NewDepartment from "./scenes/department/NewDepartment";
 import Department from "./scenes/department/Department";
+import Profiles from "./scenes/profiles/Profiles";
+import DetailProfiles from "./scenes/profiles/DetailProfiles";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -239,7 +241,30 @@ function App() {
             </ColorModeContext.Provider>
           }
         />
+        <Route
+           path="/profiles"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <Profiles />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+           path="/profiles/:id"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <DetailProfiles />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
       </Routes>
+      
 
       <SimpleFooter />
     </>

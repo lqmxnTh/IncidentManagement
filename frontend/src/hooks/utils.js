@@ -27,3 +27,15 @@ export const updateItemStatus = async (baseURL, id, item, newStatus) => {
     console.error("Failed to update item:", error);
   }
 };
+/**
+ * Format the date as dd/mm/yyyy.
+ * @param {string} dateString - The ISO date string to format.
+ * @returns {string} - The formatted date string.
+ */
+export const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+  const year = date.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+};

@@ -46,10 +46,10 @@ const navListMenuItems = [
     to:"/locations"
   },
   {
-    title: "Profile Form",
+    title: "Manage Users",
     description: "Learn how we can help you achieve your goals.",
     icon: SunIcon,
-    to:"/profile"
+    to:"/profiles"
   },
   {
     title: "Bar Chart",
