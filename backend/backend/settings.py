@@ -148,5 +148,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+MODEL =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'my_model.pkl')
+VECTORIZER =  os.path.join(os.path.dirname(os.path.dirname(__file__)),'vectorizer.pkl')
 # DEFAULT_FROM_EMAIL = 'muhammad.thupsee@umail.uom.ac.mu'
 # EMAIL_USE_SSL = False

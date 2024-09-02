@@ -49,6 +49,9 @@ const DetailIncident = () => {
   const navigate = useNavigate();
   const [emailLoading, setEmailLoading] = useState(false);
   const [value, setValue] = React.useState(0);
+  const [prediction, setPrediction] = useState(null);
+  const [error, setError] = useState(null);
+
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -56,7 +59,7 @@ const DetailIncident = () => {
     const teamIds = teamsIds
       ?.map((id) => allTeams.find((team) => team.id === id)?.name)
       .filter(Boolean);
-  
+
     return (
       <Box
         display="flex"
@@ -84,7 +87,7 @@ const DetailIncident = () => {
       </Box>
     );
   };
-  
+
   const columns = [
     { field: "id", headerName: "ID" },
     {
@@ -108,13 +111,9 @@ const DetailIncident = () => {
       headerName: "Teams",
       flex: 1,
       renderCell: (params) => (
-        <TeamsCells
-        teamsIds={params.value}
-        allTeams={teams}
-        />
+        <TeamsCells teamsIds={params.value} allTeams={teams} />
       ),
     },
-    
   ];
   useEffect(() => {
     const fetchIncident = async () => {
@@ -130,19 +129,23 @@ const DetailIncident = () => {
   }, [id, baseURL]);
 
   useEffect(() => {
+    if(incident){
     axios
       .get(`${baseURL}/api/faculties/`)
       .then((response) => setFaculties(response.data))
       .catch((error) => console.error("Error fetching faculties:", error));
+    }
   }, [baseURL]);
-  
+
   useEffect(() => {
-    axios
+    if(incident){
+      axios
       .get(`${baseURL}/api/resolutions/incident/${id}`)
       .then((response) => setResolutions(response.data))
       .catch((error) => console.error("Error fetching resolutions:", error));
-  }, [resolutionsReset,baseURL]);
-
+    }
+    
+  }, [resolutionsReset, baseURL]);
 
   useEffect(() => {
     if (incident && incident.faculty) {
@@ -266,7 +269,7 @@ const DetailIncident = () => {
 
   const handleSendMail = async () => {
     if (incident) {
-      setEmailLoading(true)
+      setEmailLoading(true);
       try {
         // Call the API to send emails with the CSRF token
         const response = await axios.post(
@@ -363,7 +366,7 @@ const DetailIncident = () => {
         ...prevIncident,
         status: "Resolved",
       }));
-      setResolutionsReset(true)
+      setResolutionsReset(true);
     }
   };
 
@@ -424,16 +427,37 @@ const DetailIncident = () => {
   if (!incident) {
     return <Typography>Loading...</Typography>;
   }
+  const handlePredict = async () => {
+    try {
+      const response = await axios.post(
+        `${baseURL}/api/incident/predict/`,
+        {
+          text: incident.description,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      setPrediction(response.data.prediction);
+      console.log(response?.data?.prediction)
+      setError(null);
+    } catch (err) {
+      setError(err.response ? err.response.data.error : err.message);
+      setPrediction(null);
+    }
+  };
   return (
     <Box m="20px">
       {emailLoading && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-4 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
-          <div className="mt-4 text-white">Loading...</div>
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
+            <div className="mt-4 text-white">Loading...</div>
+          </div>
         </div>
-      </div>
       )}
       <div className="mb-5">
         <Button
@@ -458,7 +482,7 @@ const DetailIncident = () => {
           {/* {incident?.status === "Open" ? ( */}
           <>
             <Button
-              onClick={handleAccept}
+              onClick={handlePredict}
               variant="contained"
               color="secondary"
             >
@@ -536,7 +560,7 @@ const DetailIncident = () => {
           <Tab sx={{ marginLeft: "15px" }} label="Resolutions" />
         </Tabs>
         <TabPanel value={value} index={0}>
-          <Box >
+          <Box>
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField
@@ -741,37 +765,42 @@ const DetailIncident = () => {
           )}
         </TabPanel>
         <TabPanel value={value} index={1}>
-        <Box
-        m="40px 0 0 0"
-        height="100vh"
-        sx={{
-          "& .MuiDataGrid-root": {
-            border: "none",
-          },
-          "& .MuiDataGrid-cell": {
-            borderBottom: "none",
-          },
-          "& .title-column--cell": {
-            color: colors.greenAccent[300],
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: colors.blueAccent[700],
-            borderBottom: "none",
-          },
-          "& .MuiDataGrid-virtualScroller": {
-            backgroundColor: colors.primary[400],
-          },
-          "& .MuiDataGrid-footerContainer": {
-            borderTop: "none",
-            backgroundColor: colors.blueAccent[700],
-          },
-          "& .MuiCheckbox-root": {
-            color: `${colors.greenAccent[200]} !important`,
-          },
-        }}
-      >
-        <DataGrid autoPageSize className="cursor-pointer" rows={resolutions} columns={columns} />
-      </Box>
+          <Box
+            m="40px 0 0 0"
+            height="100vh"
+            sx={{
+              "& .MuiDataGrid-root": {
+                border: "none",
+              },
+              "& .MuiDataGrid-cell": {
+                borderBottom: "none",
+              },
+              "& .title-column--cell": {
+                color: colors.greenAccent[300],
+              },
+              "& .MuiDataGrid-columnHeaders": {
+                backgroundColor: colors.blueAccent[700],
+                borderBottom: "none",
+              },
+              "& .MuiDataGrid-virtualScroller": {
+                backgroundColor: colors.primary[400],
+              },
+              "& .MuiDataGrid-footerContainer": {
+                borderTop: "none",
+                backgroundColor: colors.blueAccent[700],
+              },
+              "& .MuiCheckbox-root": {
+                color: `${colors.greenAccent[200]} !important`,
+              },
+            }}
+          >
+            <DataGrid
+              autoPageSize
+              className="cursor-pointer"
+              rows={resolutions}
+              columns={columns}
+            />
+          </Box>
         </TabPanel>
       </Grid>
 
@@ -810,7 +839,7 @@ function TabPanel(props) {
       aria-labelledby={`tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ marginTop:'10px' }}>{children}</Box>}
+      {value === index && <Box sx={{ marginTop: "10px" }}>{children}</Box>}
     </div>
   );
 }
