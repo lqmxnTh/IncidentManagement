@@ -129,24 +129,26 @@ const DetailIncident = () => {
   }, [id, baseURL]);
 
   useEffect(() => {
-    if(incident){
     axios
       .get(`${baseURL}/api/faculties/`)
       .then((response) => setFaculties(response.data))
       .catch((error) => console.error("Error fetching faculties:", error));
-    }
   }, [baseURL]);
 
   useEffect(() => {
-    if(incident){
-      axios
-      .get(`${baseURL}/api/resolutions/incident/${id}`)
-      .then((response) => setResolutions(response.data))
-      .catch((error) => console.error("Error fetching resolutions:", error));
-    }
-    
-  }, [resolutionsReset, baseURL]);
+    const fetchResolutions = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/resolutions/incident/${id}`)
+        setResolutions(response.data)
+      } catch (error) {
+        console.error("Error fetching resolutions:", error);
+      }
+    };
 
+    fetchResolutions();
+    
+  }, [baseURL]);
+console.log(resolutions)
   useEffect(() => {
     if (incident && incident.faculty) {
       axios
@@ -764,7 +766,7 @@ const DetailIncident = () => {
             </Box>
           )}
         </TabPanel>
-        <TabPanel value={value} index={1}>
+        {resolutions  && (<TabPanel value={value} index={1}>
           <Box
             m="40px 0 0 0"
             height="100vh"
@@ -801,7 +803,8 @@ const DetailIncident = () => {
               columns={columns}
             />
           </Box>
-        </TabPanel>
+        </TabPanel>)}
+        
       </Grid>
 
       <EscalateDialog

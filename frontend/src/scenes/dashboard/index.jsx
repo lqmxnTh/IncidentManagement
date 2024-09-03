@@ -2,9 +2,9 @@ import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
 import { mockTransactions } from "../../data/mockData";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import TaskAltIcon from '@mui/icons-material/TaskAlt';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import ErrorIcon from '@mui/icons-material/Error';
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import ErrorIcon from "@mui/icons-material/Error";
 import Header from "../../components/Header";
 import LineChart from "../../components/LineChart";
 import GeographyChart from "../../components/GeographyChart";
@@ -12,10 +12,12 @@ import BarChart from "../../components/BarChart";
 import StatBox from "../../components/StatBox";
 import ProgressCircle from "../../components/ProgressCircle";
 import { useEffect, useState } from "react";
-import CampaignIcon from '@mui/icons-material/Campaign';
+import CampaignIcon from "@mui/icons-material/Campaign";
 import axios from "axios";
 import { formatDate } from "../../hooks/utils";
 import { useNavigate } from "react-router-dom";
+import IncidentLineChart from "../line";
+import { Line } from "react-chartjs-2";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -23,6 +25,59 @@ const Dashboard = () => {
   const [incident, setIncident] = useState([]);
   const navigate = useNavigate();
   const baseURL = import.meta.env.VITE_API_URL;
+  const [chartData, setChartData] = useState({ dates: [], counts: [] });
+
+  useEffect(() => {
+    const fetchIncidentData = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/incidents-per-day/`); // Adjust the endpoint URL as needed
+        const { dates, counts } = response.data;
+
+        setChartData({
+          dates: dates,
+          counts: counts,
+        });
+      } catch (error) {
+        console.error("Error fetching incident data:", error);
+      }
+    };
+
+    fetchIncidentData();
+  }, []);
+
+  const data = {
+    labels: chartData.dates,
+    datasets: [
+      {
+        label: "Incidents Per Day",
+        data: chartData.counts,
+        fill: false,
+        backgroundColor: "rgb(75, 192, 192)",
+        borderColor: "rgba(75, 192, 192, 0.2)",
+      },
+    ],
+  };
+  const options = {
+    maintainAspectRatio: false, // Allows the chart to fill the container size
+    scales: {
+        x: {
+            ticks: {
+                color: '#FFFFFF', // Color of the x-axis labels
+            },
+            grid: {
+                color: 'rgba(200, 200, 200, 0.3)', // Optional: customize grid line color
+            },
+        },
+        y: {
+            ticks: {
+                color: '#FFFFFF', // Color of the y-axis labels
+            },
+            grid: {
+                color: 'rgba(200, 200, 200, 0.3)', // Optional: customize grid line color
+            },
+        },
+    },
+};
   useEffect(() => {
     const fetchIncidents = async () => {
       try {
@@ -36,12 +91,18 @@ const Dashboard = () => {
     fetchIncidents();
   }, [baseURL]);
   // if (incident){
-    let numberOfIncident = incident?.length
-    let numberOfOpenIncident = incident?.filter(rec => rec.status === "Open").length
-    let numberOfClosedIncident = incident?.filter(rec => rec.status === "Closed").length
-    let numberOfCriticalIncident = incident?.filter(rec => rec.priority === "Critical").length
+  let numberOfIncident = incident?.length;
+  let numberOfOpenIncident = incident?.filter(
+    (rec) => rec.status === "Open"
+  ).length;
+  let numberOfClosedIncident = incident?.filter(
+    (rec) => rec.status === "Closed"
+  ).length;
+  let numberOfCriticalIncident = incident?.filter(
+    (rec) => rec.priority === "Critical"
+  ).length;
   // }
-  
+
   return (
     <Box m="20px">
       {/* HEADER */}
@@ -102,8 +163,10 @@ const Dashboard = () => {
             title={numberOfOpenIncident}
             subtitle="Number of Incidents Open"
             progressCircle={true}
-            progress={numberOfOpenIncident/numberOfIncident}
-            increase={(numberOfOpenIncident*100/numberOfIncident).toFixed(0)+"%"}
+            progress={numberOfOpenIncident / numberOfIncident}
+            increase={
+              ((numberOfOpenIncident * 100) / numberOfIncident).toFixed(0) + "%"
+            }
             icon={
               <LockOpenIcon
                 sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
@@ -121,8 +184,11 @@ const Dashboard = () => {
           <StatBox
             title={numberOfClosedIncident}
             subtitle="Number of Incidents Closed"
-            progress={numberOfClosedIncident/numberOfIncident}
-            increase={(numberOfClosedIncident*100/numberOfIncident).toFixed(0)+"%"}
+            progress={numberOfClosedIncident / numberOfIncident}
+            increase={
+              ((numberOfClosedIncident * 100) / numberOfIncident).toFixed(0) +
+              "%"
+            }
             progressCircle={true}
             icon={
               <TaskAltIcon
@@ -141,8 +207,11 @@ const Dashboard = () => {
           <StatBox
             title={numberOfCriticalIncident}
             subtitle="Number of Incidents Critical"
-            progress={numberOfCriticalIncident/numberOfIncident}
-            increase={(numberOfCriticalIncident*100/numberOfIncident).toFixed(0)+"%"}
+            progress={numberOfCriticalIncident / numberOfIncident}
+            increase={
+              ((numberOfCriticalIncident * 100) / numberOfIncident).toFixed(0) +
+              "%"
+            }
             progressCircle={true}
             icon={
               <ErrorIcon
@@ -159,7 +228,7 @@ const Dashboard = () => {
           backgroundColor={colors.primary[400]}
         >
           <Box
-            mt="25px"
+            mt="10px"
             p="0 30px"
             display="flex "
             justifyContent="space-between"
@@ -171,14 +240,7 @@ const Dashboard = () => {
                 fontWeight="600"
                 color={colors.grey[100]}
               >
-                Revenue Generated
-              </Typography>
-              <Typography
-                variant="h3"
-                fontWeight="bold"
-                color={colors.greenAccent[500]}
-              >
-                $59,342.32
+                Incidents Per Day
               </Typography>
             </Box>
             <Box>
@@ -189,10 +251,11 @@ const Dashboard = () => {
               </IconButton>
             </Box>
           </Box>
-          <Box height="250px" m="-20px 0 0 0">
-            <LineChart isDashboard={true} />
+          <Box height="240px"  p="0 30px">
+            <Line height={"100%"} data={data} options={options} />
           </Box>
         </Box>
+        {/* Recent Incidents */}
         <Box
           gridColumn="span 4"
           gridRow="span 2"
@@ -211,16 +274,16 @@ const Dashboard = () => {
               Recent Incidents
             </Typography>
           </Box>
-          {incident.slice(0,5).map((transaction,i) => (
+          {incident.slice(0, 5).map((transaction, i) => (
             <Box
-            className="cursor-pointer"
+              className="cursor-pointer"
               key={`${transaction.id}-${i}`}
               display="flex"
               justifyContent="space-between"
               alignItems="center"
               borderBottom={`4px solid ${colors.primary[500]}`}
               p="15px"
-              onClick={()=>{
+              onClick={() => {
                 navigate(`/incidents/${transaction.id}`);
               }}
             >
@@ -235,9 +298,11 @@ const Dashboard = () => {
                 <Typography color={colors.grey[100]}>
                   {transaction.user_name}
                 </Typography>
-                <Box color={colors.grey[100]}>{formatDate(transaction.created_at)}</Box>
+                <Box color={colors.grey[100]}>
+                  {formatDate(transaction.created_at)}
+                </Box>
               </Box>
-              
+
               <Box
                 backgroundColor={colors.greenAccent[500]}
                 p="5px 10px"
@@ -257,7 +322,7 @@ const Dashboard = () => {
           p="30px"
         >
           <Typography variant="h5" fontWeight="600">
-            Campaign
+            Incidents In the Last 5 Days
           </Typography>
           <Box
             display="flex"
@@ -265,18 +330,10 @@ const Dashboard = () => {
             alignItems="center"
             mt="25px"
           >
-            <ProgressCircle size="125" />
-            <Typography
-              variant="h5"
-              color={colors.greenAccent[500]}
-              sx={{ mt: "15px" }}
-            >
-              $48,352 revenue generated
-            </Typography>
-            <Typography>Includes extra misc expenditures and costs</Typography>
+            <Line data={data} />
           </Box>
-        </Box>
-        <Box
+        </Box> */}
+        {/* <Box
           gridColumn="span 4"
           gridRow="span 2"
           backgroundColor={colors.primary[400]}

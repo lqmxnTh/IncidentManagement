@@ -14,6 +14,8 @@ from django.views.decorators.csrf import csrf_exempt
 import joblib
 import numpy as np
 import json
+from django.db.models import Count
+from django.db.models.functions import TruncDate
 
 # Create your views here.
 class IncidentListCreateView(generics.ListCreateAPIView):
@@ -137,3 +139,22 @@ class PredictAPIView(APIView):
         # Convert the text to numeric format using the loaded vectorizer
         return self.vectorizer.transform([text]).toarray()[0]
 
+class IncidentPerDayView(APIView):
+    # permission_classes = [IsAuthenticated]  # Optional: Adjust permissions as needed
+
+    def get(self, request, *args, **kwargs):
+        # Annotate incidents grouped by date
+        incidents_per_day = (
+            Incident.objects.annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+
+        # Format data for the line chart
+        data = {
+            'dates': [entry['date'] for entry in incidents_per_day],
+            'counts': [entry['count'] for entry in incidents_per_day],
+        }
+
+        return Response(data)
