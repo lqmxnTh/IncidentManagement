@@ -138,17 +138,17 @@ const DetailIncident = () => {
   useEffect(() => {
     const fetchResolutions = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/resolutions/incident/${id}`)
-        setResolutions(response.data)
+        const response = await axios.get(
+          `${baseURL}/api/resolutions/incident/${id}`
+        );
+        setResolutions(response.data);
       } catch (error) {
         console.error("Error fetching resolutions:", error);
       }
     };
 
     fetchResolutions();
-    
   }, [baseURL]);
-console.log(resolutions)
   useEffect(() => {
     if (incident && incident.faculty) {
       axios
@@ -429,7 +429,17 @@ console.log(resolutions)
   if (!incident) {
     return <Typography>Loading...</Typography>;
   }
+  function getRandomIds(data, count) {
+    const ids = data.map(item => item.id);
+    
+    const shuffled = ids.sort(() => 0.5 - Math.random());
+
+    const selectedIds = shuffled.slice(0, count);
+
+    return selectedIds;
+}
   const handlePredict = async () => {
+    setEmailLoading(true);
     try {
       const response = await axios.post(
         `${baseURL}/api/incident/predict/`,
@@ -444,11 +454,54 @@ console.log(resolutions)
       );
 
       setPrediction(response.data.prediction);
-      console.log(response?.data?.prediction)
+      console.log(incident)
+      console.log(newlyFilteredProfiles)
       setError(null);
+      if (prediction) {
+        const category = incidentTypes.find(
+          (category) => category.name === prediction[0]
+        );
+        if(prediction[0] === 'Facility and Maintenance Issues' || prediction[0] === 'Transportation and Parking'){
+          setIncident((prevIncident) => ({
+            ...prevIncident,
+            teams: [1],
+          }));
+        }
+        if(prediction[0] === 'Academic and Student Affairs' || prediction[0] === 'Administrative and Operational Issues'){
+          setIncident((prevIncident) => ({
+            ...prevIncident,
+            teams: [5],
+          }));
+        }
+        if(prediction[0] === 'Security Incidents' || prediction[0] === 'Health and Safety'){
+          setIncident((prevIncident) => ({
+            ...prevIncident,
+            teams: [2],
+          }));
+        }
+        if(prediction[0] === 'IT and Network Issues'){
+          setIncident((prevIncident) => ({
+            ...prevIncident,
+            teams: [3],
+          }));
+        }
+        console.log(category.id);
+        setIncident((prevIncident) => ({
+          ...prevIncident,
+          incident_type: [category.id],
+        }));
+      }
     } catch (err) {
       setError(err.response ? err.response.data.error : err.message);
       setPrediction(null);
+    } finally{
+      await handleAccept();
+      const randomIds = getRandomIds(profiles, 2);
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        assigned_to: randomIds,
+      }));
+      setEmailLoading(false);
     }
   };
   return (
@@ -637,7 +690,7 @@ console.log(resolutions)
                   options={incidentTypes}
                   getOptionLabel={(option) => option.name}
                   value={incidentTypes.filter((type) =>
-                    incident.incident_type.includes(type.id)
+                    incident?.incident_type?.includes(type.id)
                   )}
                   onChange={handleIncidentTypeChange}
                   renderInput={(params) => (
@@ -766,45 +819,46 @@ console.log(resolutions)
             </Box>
           )}
         </TabPanel>
-        {resolutions  && (<TabPanel value={value} index={1}>
-          <Box
-            m="40px 0 0 0"
-            height="100vh"
-            sx={{
-              "& .MuiDataGrid-root": {
-                border: "none",
-              },
-              "& .MuiDataGrid-cell": {
-                borderBottom: "none",
-              },
-              "& .title-column--cell": {
-                color: colors.greenAccent[300],
-              },
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: colors.blueAccent[700],
-                borderBottom: "none",
-              },
-              "& .MuiDataGrid-virtualScroller": {
-                backgroundColor: colors.primary[400],
-              },
-              "& .MuiDataGrid-footerContainer": {
-                borderTop: "none",
-                backgroundColor: colors.blueAccent[700],
-              },
-              "& .MuiCheckbox-root": {
-                color: `${colors.greenAccent[200]} !important`,
-              },
-            }}
-          >
-            <DataGrid
-              autoPageSize
-              className="cursor-pointer"
-              rows={resolutions}
-              columns={columns}
-            />
-          </Box>
-        </TabPanel>)}
-        
+        {resolutions && (
+          <TabPanel value={value} index={1}>
+            <Box
+              m="40px 0 0 0"
+              height="100vh"
+              sx={{
+                "& .MuiDataGrid-root": {
+                  border: "none",
+                },
+                "& .MuiDataGrid-cell": {
+                  borderBottom: "none",
+                },
+                "& .title-column--cell": {
+                  color: colors.greenAccent[300],
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  backgroundColor: colors.blueAccent[700],
+                  borderBottom: "none",
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  backgroundColor: colors.primary[400],
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  borderTop: "none",
+                  backgroundColor: colors.blueAccent[700],
+                },
+                "& .MuiCheckbox-root": {
+                  color: `${colors.greenAccent[200]} !important`,
+                },
+              }}
+            >
+              <DataGrid
+                autoPageSize
+                className="cursor-pointer"
+                rows={resolutions}
+                columns={columns}
+              />
+            </Box>
+          </TabPanel>
+        )}
       </Grid>
 
       <EscalateDialog

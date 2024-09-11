@@ -158,3 +158,46 @@ class IncidentPerDayView(APIView):
         }
 
         return Response(data)
+
+class IncidentTypeCountAPIView(APIView):
+    """
+    API view to count incidents by type.
+    """
+    def get(self, request, *args, **kwargs):
+        # Use annotate to count incidents related to each IncidentType
+        incident_counts = IncidentType.objects.annotate(
+            count=Count('incident', distinct=True)  # Counting distinct incidents per incident type
+        ).order_by('-count')
+
+        # Prepare the response data
+        counts_dict = {incident_type.name: incident_type.count for incident_type in incident_counts}
+
+        # Return the data as a JSON response
+        return Response(counts_dict, status=status.HTTP_200_OK)
+    
+class IncidentMetricsAPIView(APIView):
+    """
+    API view to count incidents by priority and status.
+    """
+    def get(self, request, *args, **kwargs):
+        # Count incidents by priority
+        priority_counts = Incident.objects.values('priority').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        # Count incidents by status
+        status_counts = Incident.objects.values('status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        # Prepare the response data
+        priority_dict = {item['priority']: item['count'] for item in priority_counts}
+        status_dict = {item['status']: item['count'] for item in status_counts}
+
+        response_data = {
+            'priority_counts': priority_dict,
+            'status_counts': status_dict
+        }
+
+        # Return the data as a JSON response
+        return Response(response_data, status=status.HTTP_200_OK)

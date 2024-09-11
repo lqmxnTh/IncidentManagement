@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Navbar,
   Typography,
@@ -10,12 +10,14 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import NavListMenu from "./NavListMenu"; // import the new NavListMenu component
+import axios from "axios";
 
 export function NavbarDefault() {
   const baseURL = import.meta.env.VITE_API_URL;
   const [cookies, setCookie, removeCookie] = useCookies(["user"]);
+  const [profile, setProfile] = useState([]);
   const user = cookies?.user;
-  console.log(user?.id,user?.first_name)
+
   const handleLogout = async () => {
     removeCookie("user");
     removeCookie("token");
@@ -23,6 +25,13 @@ export function NavbarDefault() {
   };
 
   const [openNav, setOpenNav] = React.useState(false);
+
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/profiles/user/${user?.id}`)
+      .then((response) => setProfile(response.data))
+      .catch((error) => console.error("Error fetching profiles", error));
+  }, [baseURL,user]);
 
   React.useEffect(() => {
     window.addEventListener(
@@ -69,7 +78,7 @@ export function NavbarDefault() {
         color="blue-gray"
         className="flex items-center gap-x-2 p-1 font-medium"
       >
-        <NavListMenu /> {/* Mega Menu */}
+        {user && profile?.role && <NavListMenu profile={profile} />}
       </Typography>
     </ul>
   );

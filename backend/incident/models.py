@@ -81,6 +81,7 @@ class EscalationHistory(models.Model):
 
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='escalation_history')
     escalated_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    escalated_to = models.ManyToManyField(Profile,blank=True,default=None, related_name="escalated_to")
     escalation_type = models.CharField(max_length=50, choices=ESCALATION_TYPE_CHOICES)
     previous_level = models.IntegerField()
     new_level = models.IntegerField()
@@ -94,4 +95,8 @@ class Task(models.Model):
     name = models.CharField(max_length=200)
     incident = models.ForeignKey(Incident,blank=True,null=True,on_delete=models.CASCADE)
     profile = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
-    accepted = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    completed = models.BooleanField(default=False)
+    forfeited = models.BooleanField(default=False)
+    forfeited_reason = models.TextField()
+    

@@ -1,6 +1,28 @@
 // utils.js
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_URL;
+const incidentApiPath = import.meta.env.INCIDENT;
+
+const makeRequest = async (method, endpoint, data = null) => {
+  try {
+    const response = await axios({
+      method,
+      baseURL,
+      url: endpoint,
+      data,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error making request:', error);
+    throw error; // Rethrow the error for handling in the calling code
+  }
+};
+
+export default makeRequest;
+
+
 /**
  * Update the status of an item and save the changes to the server.
  * @param {string} baseURL - The base URL for the API.

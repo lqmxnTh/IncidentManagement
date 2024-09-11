@@ -1,31 +1,27 @@
 import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
-import { mockTransactions } from "../../data/mockData";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ErrorIcon from "@mui/icons-material/Error";
 import Header from "../../components/Header";
-import LineChart from "../../components/LineChart";
 import GeographyChart from "../../components/GeographyChart";
-import BarChart from "../../components/BarChart";
 import StatBox from "../../components/StatBox";
-import ProgressCircle from "../../components/ProgressCircle";
 import { useEffect, useState } from "react";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import axios from "axios";
 import { formatDate } from "../../hooks/utils";
 import { useNavigate } from "react-router-dom";
-import IncidentLineChart from "../line";
-import { Line } from "react-chartjs-2";
-
+import { Line, Pie } from "react-chartjs-2";
+import IncidentTypeCountsChart from "../../components/BarChart";
+import IncidentMetricsCharts from "../../components/PieChart";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [incident, setIncident] = useState([]);
   const navigate = useNavigate();
   const baseURL = import.meta.env.VITE_API_URL;
-  const [chartData, setChartData] = useState({ dates: [], counts: [] });
+  const [lineChartData, setLineChartData] = useState({ dates: [], counts: [] });
 
   useEffect(() => {
     const fetchIncidentData = async () => {
@@ -33,7 +29,7 @@ const Dashboard = () => {
         const response = await axios.get(`${baseURL}/api/incidents-per-day/`); // Adjust the endpoint URL as needed
         const { dates, counts } = response.data;
 
-        setChartData({
+        setLineChartData({
           dates: dates,
           counts: counts,
         });
@@ -45,12 +41,12 @@ const Dashboard = () => {
     fetchIncidentData();
   }, []);
 
-  const data = {
-    labels: chartData.dates,
+  const Linedata = {
+    labels: lineChartData.dates,
     datasets: [
       {
         label: "Incidents Per Day",
-        data: chartData.counts,
+        data: lineChartData.counts,
         fill: false,
         backgroundColor: "rgb(75, 192, 192)",
         borderColor: "rgba(75, 192, 192, 0.2)",
@@ -60,24 +56,24 @@ const Dashboard = () => {
   const options = {
     maintainAspectRatio: false, // Allows the chart to fill the container size
     scales: {
-        x: {
-            ticks: {
-                color: '#FFFFFF', // Color of the x-axis labels
-            },
-            grid: {
-                color: 'rgba(200, 200, 200, 0.3)', // Optional: customize grid line color
-            },
+      x: {
+        ticks: {
+          color: "#FFFFFF", // Color of the x-axis labels
         },
-        y: {
-            ticks: {
-                color: '#FFFFFF', // Color of the y-axis labels
-            },
-            grid: {
-                color: 'rgba(200, 200, 200, 0.3)', // Optional: customize grid line color
-            },
+        grid: {
+          color: "rgba(200, 200, 200, 0.3)", // Optional: customize grid line color
         },
+      },
+      y: {
+        ticks: {
+          color: "#FFFFFF", // Color of the y-axis labels
+        },
+        grid: {
+          color: "rgba(200, 200, 200, 0.3)", // Optional: customize grid line color
+        },
+      },
     },
-};
+  };
   useEffect(() => {
     const fetchIncidents = async () => {
       try {
@@ -251,8 +247,8 @@ const Dashboard = () => {
               </IconButton>
             </Box>
           </Box>
-          <Box height="240px"  p="0 30px">
-            <Line height={"100%"} data={data} options={options} />
+          <Box height="240px" p="0 30px">
+            <Line height={"100%"} data={Linedata} options={options} />
           </Box>
         </Box>
         {/* Recent Incidents */}
@@ -315,26 +311,8 @@ const Dashboard = () => {
         </Box>
 
         {/* ROW 3 */}
-        {/* <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          p="30px"
-        >
-          <Typography variant="h5" fontWeight="600">
-            Incidents In the Last 5 Days
-          </Typography>
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            mt="25px"
-          >
-            <Line data={data} />
-          </Box>
-        </Box> */}
-        {/* <Box
-          gridColumn="span 4"
+        <Box
+          gridColumn="span 6"
           gridRow="span 2"
           backgroundColor={colors.primary[400]}
         >
@@ -343,14 +321,14 @@ const Dashboard = () => {
             fontWeight="600"
             sx={{ padding: "30px 30px 0 30px" }}
           >
-            Sales Quantity
+            Incident By Category
           </Typography>
-          <Box height="250px" mt="-20px">
-            <BarChart isDashboard={true} />
+          <Box height="290px" mt="-20px" p={"20PX"}>
+            <IncidentTypeCountsChart />
           </Box>
         </Box>
         <Box
-          gridColumn="span 4"
+          gridColumn="span 6"
           gridRow="span 2"
           backgroundColor={colors.primary[400]}
           padding="30px"
@@ -360,12 +338,12 @@ const Dashboard = () => {
             fontWeight="600"
             sx={{ marginBottom: "15px" }}
           >
-            Geography Based Traffic
+           Incident Prioriy and Incident Status
           </Typography>
-          <Box height="200px">
-            <GeographyChart isDashboard={true} />
+          <Box>
+            <IncidentMetricsCharts />
           </Box>
-        </Box> */}
+        </Box>
       </Box>
     </Box>
   );

@@ -1,7 +1,7 @@
 from django.urls import path
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import IncidentListCreateView,IncidentPerDayView,PredictAPIView,ResolutionByIncidentViewSet,IncidentDetailView,SendAssignmentEmail,IncidentTypeListView, ResolutionViewSet, EscalationHistoryViewSet,IncidentListView
+from .views import IncidentListCreateView,IncidentPerDayView,IncidentMetricsAPIView,IncidentTypeCountAPIView,PredictAPIView,ResolutionByIncidentViewSet,IncidentDetailView,SendAssignmentEmail,IncidentTypeListView, ResolutionViewSet, EscalationHistoryViewSet,IncidentListView
 
 router = DefaultRouter()
 router.register(r'resolutions', ResolutionViewSet)
@@ -16,5 +16,8 @@ urlpatterns = [
     path('incident/predict/', PredictAPIView.as_view(), name='predict'),
     path('resolutions/incident/<int:incident_id>/', ResolutionByIncidentViewSet.as_view(), name='resolution-by-incident'),
     path('incidents-per-day/', IncidentPerDayView.as_view(), name='incidents-per-day'),
+    path('incident-type-counts/', IncidentTypeCountAPIView.as_view(), name='incident_type_counts'),
+    path('incident-metrics/', IncidentMetricsAPIView.as_view(), name='incident_metrics'),
+
     path('', include(router.urls)),
  ]

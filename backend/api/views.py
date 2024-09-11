@@ -8,6 +8,7 @@ from rest_framework import status, generics
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
 def ResponseMessage(error,message):
     errors = error
@@ -72,3 +73,12 @@ class TeamListView(generics.ListCreateAPIView):
 class TeamDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
+    
+class ProfileDetailViewUserId(APIView):
+    def get(self, request, user_id):
+        # Retrieve the profile based on the user ID
+        profile = get_object_or_404(Profile, user=user_id)
+        # Serialize the profile data
+        serializer = ProfileSerializer(profile)
+        # Return the serialized data as a response
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -15,70 +15,85 @@ import {
   PhoneIcon,
   NewspaperIcon,
   RectangleGroupIcon,
-  TagIcon,
 } from "@heroicons/react/24/solid";
-import {
-    ChevronDownIcon
-  } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+
 const navListMenuItems = [
   {
     title: "Dashboard",
     description: "A single Place for all Information",
     icon: SquaresPlusIcon,
-    to:"/dashboard"
+    to: "/dashboard",
+    roles: ["Admin"], // Specify roles that can access this item
   },
   {
     title: "Manage Incidents",
     description: "Manage All Incidents Here",
     icon: SquaresPlusIcon,
-    to:"/incident"
+    to: "/incident",
+    roles: ["Admin", "Officer"],
   },
   {
     title: "Manage Teams",
     description: "Meet and learn about our dedication",
     icon: UserGroupIcon,
-    to:"/team"
+    to: "/team",
+    roles: ["Admin"],
   },
   {
     title: "Manage Locations",
     description: "Find the perfect solution for your needs.",
     icon: Bars4Icon,
-    to:"/locations"
+    to: "/locations",
+    roles: ["Admin"],
   },
   {
     title: "Manage Users",
     description: "Learn how we can help you achieve your goals.",
     icon: SunIcon,
-    to:"/profiles"
+    to: "/profiles",
+    roles: ["Admin"],
   },
-  {
-    title: "Bar Chart",
-    description: "Reach out to us for assistance or inquiries",
-    icon: GlobeAmericasIcon,
-    to:"/bar"
-  },
-  {
-    title: "Pie Chart",
-    description: "Find the perfect solution for your needs.",
-    icon: PhoneIcon,
-    to:"/pie"
-  },
-  {
-    title: "Line Chart",
-    description: "Read insightful articles, tips, and expert opinions.",
-    icon: NewspaperIcon,
-    to:"/line"
-  },
-  {
-    title: "Geography Chart",
-    description: "Find the perfect solution for your needs.",
-    icon: RectangleGroupIcon,
-    to:"/geography"
-  },
+  // {
+  //   title: "Bar Chart",
+  //   description: "Reach out to us for assistance or inquiries",
+  //   icon: GlobeAmericasIcon,
+  //   to: "/bar",
+  //   roles: ["admin", "staff"],
+  // },
+  // {
+  //   title: "Pie Chart",
+  //   description: "Find the perfect solution for your needs.",
+  //   icon: PhoneIcon,
+  //   to: "/pie",
+  //   roles: ["manager", "staff"],
+  // },
+  // {
+  //   title: "Line Chart",
+  //   description: "Read insightful articles, tips, and expert opinions.",
+  //   icon: NewspaperIcon,
+  //   to: "/line",
+  //   roles: ["admin", "staff"],
+  // },
+  // {
+  //   title: "Geography Chart",
+  //   description: "Find the perfect solution for your needs.",
+  //   icon: RectangleGroupIcon,
+  //   to: "/geography",
+  //   roles: ["admin"],
+  // },
 ];
 
-function NavListMenu() {
-  const renderItems = navListMenuItems.map(({ icon, title, description, to }, key) => (
+function NavListMenu({ profile }) {
+  // Extract user roles from the profile argument
+  const userRoles = profile.user_roles || [];
+
+  // Filter items based on the user's roles
+  const filteredItems = navListMenuItems.filter(item =>
+    item.roles.some(role => userRoles.includes(role))
+  );
+
+  const renderItems = filteredItems.map(({ icon, title, description, to }, key) => (
     <a href={to} key={key}>
       <MenuItem className="flex items-center gap-3 rounded-lg">
         <div className="flex items-center justify-center rounded-lg !bg-blue-gray-50 p-2 ">

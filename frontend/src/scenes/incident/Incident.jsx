@@ -5,6 +5,7 @@ import { Box, Typography, Button, useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
+import { useCookies } from "react-cookie";
 
 const Incident = () => {
   const baseURL = import.meta.env.VITE_API_URL;
@@ -12,6 +13,9 @@ const Incident = () => {
   const colors = tokens(theme.palette.mode);
   const [incidents, setIncidents] = useState([]);
   const navigate = useNavigate();
+  const [cookies, setCookie, removeCookie] = useCookies(["user"]);
+  const [profile, setProfile] = useState([]);
+  const user = cookies?.user;
 
   useEffect(() => {
     const fetchIncidents = async () => {
@@ -25,6 +29,13 @@ const Incident = () => {
 
     fetchIncidents();
   }, []);
+
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/profiles/user/${user?.id}`)
+      .then((response) => setProfile(response.data))
+      .catch((error) => console.error("Error fetching profiles", error));
+  }, [baseURL]);
 
   const handleRowClick = (params) => {
     navigate(`/incidents/${params.id}`);
