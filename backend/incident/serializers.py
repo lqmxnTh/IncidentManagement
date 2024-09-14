@@ -146,18 +146,35 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = '__all__'
         
-class StepsSerializer(serializers.ModelSerializer):
-    attendees = ProfileSerializer(many=True, read_only=True)
+class StepsViewOnlySerializer(serializers.ModelSerializer):
+    attendees = ProfileSerializer(read_only=True)
     category = IncidentTypeSerializer(read_only=True)
 
     class Meta:
         model = Steps
         fields = '__all__'
             
+class StepsCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Steps
+        fields = ['step', 'name', 'attendees', 'category']
+    
+    def create(self, validated_data):
+        # Create the step instance
+        step = Steps.objects.create(**validated_data)
+        
+        # Get the workflow from context (you will pass it in the view)
+        workflow = self.context['workflow']
+        
+        # Add the newly created step to the workflow
+        workflow.steps.add(step)
+        
+        return step
+            
 class WorkFlowSerializer(serializers.ModelSerializer):
-    steps = StepsSerializer(many=True, read_only=True)
+    # steps = StepsSerializer(many=True, read_only=False)
     created_by = ProfileSerializer(read_only=True)
-    category = IncidentTypeSerializer(read_only=True)
+    # category = IncidentTypeSerializer(read_only=False)
     number_of_steps = serializers.SerializerMethodField()
 
     class Meta:
@@ -166,3 +183,5 @@ class WorkFlowSerializer(serializers.ModelSerializer):
         
     def get_number_of_steps(self, obj):
         return obj.steps.count()
+    
+    

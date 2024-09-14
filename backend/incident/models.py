@@ -105,9 +105,9 @@ class Task(models.Model):
         return f'Task {self.name} {self.incident.title}'
     
 class Steps(models.Model):
-    step = models.IntegerField()
+    step = models.IntegerField(blank=True)
     name = models.TextField(blank=True)
-    attendees = models.ManyToManyField(Profile,blank=True,default=None)
+    attendees = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
     category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     
@@ -124,4 +124,13 @@ class WorkFlow(models.Model):
     
     def __str__(self):
         return f'Workflow for {self.name} {self.category.name}'
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Ensure the category of each step is the same as the workflow's category
+        if self.category and self.steps.exists():
+            for step in self.steps.all():
+                if step.category != self.category:
+                    step.category = self.category
+                    step.save()
     

@@ -26,35 +26,35 @@ const EscalateDialog = ({
   newLevel,
   onNewLevelChange,
   profiles,
-  handleSelectChange
+  handleSelectChange,
 }) => {
   return (
-    <Dialog open={open} onClose={onClose} sx={{ '& .MuiDialog-paper': { width: '600px', maxWidth: 'none' } }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      sx={{ "& .MuiDialog-paper": { width: "600px", maxWidth: "none" } }}
+    >
       <DialogTitle>Escalate Incident</DialogTitle>
       <DialogContent>
         <Box display="flex" flexDirection="column" gap="16px">
-        <FormControl
-                  color="info"
-                  fullWidth
-                  margin="normal"
-                >
-                  <InputLabel>Escalate To</InputLabel>
-                  <Select
-                    color="info"
-                    label="Escalate T0"
-                    name="wscalate_to"
-                    value={profiles.user_name}
-                    onChange={handleSelectChange}
-                    fullWidth
-                    margin="normal"
-                  >
-                    {profiles.map((profiles) => (
-                      <MenuItem key={profiles.id} value={profiles.id}>
-                        {profiles.user_name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+          <FormControl color="info" fullWidth margin="normal">
+            <InputLabel>Escalate To</InputLabel>
+            <Select
+              color="info"
+              label="Escalate T0"
+              name="escalate_to"
+              value={profiles.user_name}
+              onChange={handleSelectChange}
+              fullWidth
+              margin="normal"
+            >
+              {profiles.map((profiles) => (
+                <MenuItem key={profiles.id} value={profiles.id}>
+                  {profiles.user_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <FormControl fullWidth margin="normal">
             <InputLabel>Escalation Type</InputLabel>
             <Select

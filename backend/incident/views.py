@@ -2,7 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from .models import Incident, Resolution, EscalationHistory,IncidentType, Profile, Steps, Task, WorkFlow
-from .serializers import IncidentSerializer, ProfileSerializer, ResolutionSerializer,IncidentTypeSerializer, EscalationHistorySerializer,AdvanceIncidentSerializer, StepsSerializer, TaskSerializer, WorkFlowSerializer
+from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -55,9 +55,17 @@ class TaskListView(generics.ListCreateAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
 
-class StepsListView(generics.ListCreateAPIView):
+class StepsListViewONLY(generics.ListAPIView):
     queryset = Steps.objects.all()
-    serializer_class = StepsSerializer  
+    serializer_class = StepsViewOnlySerializer  
+    
+class StepsListCreateView(generics.ListCreateAPIView):
+    queryset = Steps.objects.all()
+    serializer_class = StepsCreateSerializer  
+
+class IndividualStepsView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Steps.objects.all()
+    serializer_class = StepsCreateSerializer  
 
 class WorkFlowListView(generics.ListCreateAPIView):
     queryset = WorkFlow.objects.all()
@@ -67,6 +75,18 @@ class WorkFlowDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = WorkFlow.objects.all()
     serializer_class = WorkFlowSerializer
     
+class AddStepToWorkflowView(APIView):
+    def post(self, request, workflow_id):
+        workflow = WorkFlow.objects.get(id=workflow_id)
+        
+        # Pass the workflow instance to the serializer context
+        serializer = StepsCreateSerializer(data=request.data, context={'workflow': workflow})
+        
+        if serializer.is_valid():
+            step = serializer.save()
+            return Response({'status': 'Step added', 'step': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class SendAssignmentEmail(APIView):
     def post(self, request, incident_id):
         try:

@@ -72,7 +72,7 @@ function WorkFlow() {
       align: "left",
       renderCell: (params) => (
         <RenderItemsCell
-          ids={[params.value.id]}
+          ids={[params.value]}
           allItems={incidentType}
           name={"name"}
         />
