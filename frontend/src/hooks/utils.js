@@ -1,5 +1,5 @@
 // utils.js
-import axios from 'axios';
+import axios from "axios";
 
 const baseURL = import.meta.env.VITE_API_URL;
 const incidentApiPath = import.meta.env.INCIDENT;
@@ -15,13 +15,12 @@ const makeRequest = async (method, endpoint, data = null) => {
 
     return response.data;
   } catch (error) {
-    console.error('Error making request:', error);
+    console.error("Error making request:", error);
     throw error; // Rethrow the error for handling in the calling code
   }
 };
 
 export default makeRequest;
-
 
 /**
  * Update the status of an item and save the changes to the server.
@@ -39,7 +38,7 @@ export const updateItemStatus = async (baseURL, id, item, newStatus) => {
   };
 
   // Simulate the delay for React state update
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
 
   // Make the API call to update the item on the server
   try {
@@ -56,8 +55,41 @@ export const updateItemStatus = async (baseURL, id, item, newStatus) => {
  */
 export const formatDate = (dateString) => {
   const date = new Date(dateString);
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // Months are zero-indexed
   const year = date.getUTCFullYear();
   return `${day}/${month}/${year}`;
 };
+
+export const handleInputChange = (e, variable) => {
+  const { name, value } = e.target;
+  variable((prevWorkflow) => ({
+    ...prevWorkflow,
+    [name]: value,
+  }));
+};
+
+export const handleSelectChange = (e, variable) => {
+  const { name, value } = e.target;
+  variable((prevWorkflow) => ({
+    ...prevWorkflow,
+    [name]: value,
+  }));
+};
+
+export const handleSelectChangeWithFullData = (e, arr, variable) => {
+  const selectedCategoryId = e.target.value;
+  const { name, value } = e.target;
+
+  // Find the selected category from the available categories
+  const selectedCategory = arr.find(
+    (categ) => categ.id === selectedCategoryId
+  );
+
+  // Update the workflow state
+  variable((prevWorkflow) => ({
+    ...prevWorkflow,
+    [name]: selectedCategory,
+  }));
+};
+

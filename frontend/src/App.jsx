@@ -6,13 +6,10 @@ import { SimpleFooter } from "./components/Footer";
 import { Registerpage } from "./pages/RegisterPage";
 import Errorpage from "./pages/ErrorPage";
 import { ReportIncident } from "./pages/ReportIncident";
-
-import { useState } from "react";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
 import Invoices from "./scenes/invoices";
 import Contacts from "./scenes/contacts";
-import Bar from "./scenes/bar";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
 import Pie from "./scenes/pie";
@@ -30,10 +27,11 @@ import NewDepartment from "./scenes/department/NewDepartment";
 import Department from "./scenes/department/Department";
 import Profiles from "./scenes/profiles/Profiles";
 import DetailProfiles from "./scenes/profiles/DetailProfiles";
+import WorkFlow from "./scenes/workflow";
+import DetailWorkflow from "./scenes/workflow/DetailWorkflow";
 
 function App() {
   const [theme, colorMode] = useMode();
-  const [isSidebar, setIsSidebar] = useState(true);
   return (
     <>
       <NavbarDefault />
@@ -99,12 +97,23 @@ function App() {
           }
         />
         <Route
-          path="/bar"
+          path="/workflow"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Bar />
+                <WorkFlow />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+          path="/workflow/:id"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <DetailWorkflow />
               </ThemeProvider>
             </ColorModeContext.Provider>
           }

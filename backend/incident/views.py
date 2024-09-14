@@ -1,8 +1,8 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
-from .models import Incident, Resolution, EscalationHistory,IncidentType, Profile, Task
-from .serializers import IncidentSerializer, ProfileSerializer, ResolutionSerializer,IncidentTypeSerializer, EscalationHistorySerializer,AdvanceIncidentSerializer, TaskSerializer
+from .models import Incident, Resolution, EscalationHistory,IncidentType, Profile, Steps, Task, WorkFlow
+from .serializers import IncidentSerializer, ProfileSerializer, ResolutionSerializer,IncidentTypeSerializer, EscalationHistorySerializer,AdvanceIncidentSerializer, StepsSerializer, TaskSerializer, WorkFlowSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -51,10 +51,21 @@ class IncidentTypeListView(generics.ListAPIView):
     queryset = IncidentType.objects.all()
     serializer_class = IncidentTypeSerializer
 
-class TaskListView(generics.ListAPIView):
+class TaskListView(generics.ListCreateAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
+
+class StepsListView(generics.ListCreateAPIView):
+    queryset = Steps.objects.all()
+    serializer_class = StepsSerializer  
+
+class WorkFlowListView(generics.ListCreateAPIView):
+    queryset = WorkFlow.objects.all()
+    serializer_class = WorkFlowSerializer  
     
+class WorkFlowDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = WorkFlow.objects.all()
+    serializer_class = WorkFlowSerializer
     
 class SendAssignmentEmail(APIView):
     def post(self, request, incident_id):

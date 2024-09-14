@@ -54,13 +54,13 @@ const navListMenuItems = [
     to: "/profiles",
     roles: ["Admin"],
   },
-  // {
-  //   title: "Bar Chart",
-  //   description: "Reach out to us for assistance or inquiries",
-  //   icon: GlobeAmericasIcon,
-  //   to: "/bar",
-  //   roles: ["admin", "staff"],
-  // },
+  {
+    title: "Workflow",
+    description: "Create and Manage Workflow for Incidents",
+    icon: GlobeAmericasIcon,
+    to: "/workflow",
+    roles: ["Admin"],
+  },
   // {
   //   title: "Pie Chart",
   //   description: "Find the perfect solution for your needs.",

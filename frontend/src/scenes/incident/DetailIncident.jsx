@@ -15,6 +15,7 @@ import {
   InputLabel,
   Tabs,
   Tab,
+  Backdrop,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
@@ -25,6 +26,8 @@ import { updateItemStatus } from "../../hooks/utils";
 import MapComponent from "../../components/MapComponent";
 import { useCookies } from "react-cookie";
 import { DataGrid } from "@mui/x-data-grid";
+import { TabPanel } from "../../components/TabPanel";
+
 const DetailIncident = () => {
   const { id } = useParams();
   const baseURL = import.meta.env.VITE_API_URL;
@@ -42,6 +45,7 @@ const DetailIncident = () => {
   const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [escalationNote, setEscalationNote] = useState("");
+  const [escalatedTo, setEscalatedTo] = useState(null);
   const [escalationType, setEscalationType] = useState("Functional");
   const [previousLevel, setPreviousLevel] = useState(1);
   const [newLevel, setNewLevel] = useState(2);
@@ -51,6 +55,7 @@ const DetailIncident = () => {
   const [value, setValue] = React.useState(0);
   const [prediction, setPrediction] = useState(null);
   const [error, setError] = useState(null);
+  const [isEditable, setIsEditable] = useState(false);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -88,7 +93,7 @@ const DetailIncident = () => {
     );
   };
 
-  const columns = [
+  const Resolutioncolumns = [
     { field: "id", headerName: "ID" },
     {
       field: "resolution_notes",
@@ -113,6 +118,72 @@ const DetailIncident = () => {
       renderCell: (params) => (
         <TeamsCells teamsIds={params.value} allTeams={teams} />
       ),
+    },
+  ];
+  const EscaltionHistorycolumns = [
+    { field: "id", headerName: "ID" },
+    {
+      field: "escaltion_type",
+      headerName: "Escaltion Type",
+      flex: 1,
+      cellClassName: "title-column--cell",
+    },
+    {
+      field: "previous_level",
+      headerName: "Previous Level",
+      flex: 2,
+    },
+    {
+      field: "new_level",
+      headerName: "New Level",
+      flex: 1,
+    },
+    {
+      field: "comments",
+      headerName: "Comments",
+      flex: 1,
+    },
+    {
+      field: "escalated_to",
+      headerName: "Teams",
+      flex: 1,
+      renderCell: (params) => (
+        <TeamsCells teamsIds={params.value} allTeams={teams} />
+      ),
+    },
+  ];
+  const Taskcolumns = [
+    { field: "id", headerName: "ID" },
+    {
+      field: "created_by",
+      headerName: "Created By",
+      flex: 1,
+    },
+    {
+      field: "name",
+      headerName: "Task Name",
+      flex: 2,
+      cellClassName: "title-column--cell",
+    },
+    {
+      field: "task_to",
+      headerName: "Task To",
+      flex: 1,
+    },
+    {
+      field: "completed",
+      headerName: "Completed",
+      flex: 1,
+    },
+    {
+      field: "forfeited",
+      headerName: "Forfeit",
+      flex: 1,
+    },
+    {
+      field: "forfeited_reason",
+      headerName: "Forfeit Reason",
+      flex: 1,
     },
   ];
   useEffect(() => {
@@ -252,7 +323,12 @@ const DetailIncident = () => {
       await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
     } catch (error) {
       console.error("Failed to update incident:", error);
+    } finally {
+      setIsEditable(false);
     }
+  };
+  const handleEdit = () => {
+    setIsEditable(true);
   };
 
   const handleDelete = async () => {
@@ -294,11 +370,11 @@ const DetailIncident = () => {
           }));
         } else {
           console.error("Failed to send emails");
+          alert("Failed to send Mail")
         }
-
         // Update incident status
       } catch (error) {
-        console.error("Error in sending emails:", error);
+        alert(error.response.data.error)
       } finally {
         setEmailLoading(false); // Hide spinner and re-enable page
       }
@@ -312,7 +388,8 @@ const DetailIncident = () => {
   const handleEscalateConfirm = async () => {
     try {
       const escalationData = {
-        escalated_by: 14,
+        escalated_by: profiles[0]?.id,
+        escalated_to: [escalatedTo],
         incident: id,
         escalation_type: escalationType,
         previous_level: previousLevel,
@@ -343,6 +420,10 @@ const DetailIncident = () => {
 
   const handleEscalationNoteChange = (e) => {
     setEscalationNote(e.target.value);
+  };
+
+  const handleEscalatedToChange = (e) => {
+    setEscalatedTo(e.target.value);
   };
 
   const handleEscalationTypeChange = (e) => {
@@ -423,21 +504,18 @@ const DetailIncident = () => {
     result.includes(obj.id)
   );
 
-  const isEditable =
-    incident?.status === "Open" || incident?.status === "In Progress";
-
   if (!incident) {
     return <Typography>Loading...</Typography>;
   }
   function getRandomIds(data, count) {
-    const ids = data.map(item => item.id);
-    
+    const ids = data.map((item) => item.id);
+
     const shuffled = ids.sort(() => 0.5 - Math.random());
 
     const selectedIds = shuffled.slice(0, count);
 
     return selectedIds;
-}
+  }
   const handlePredict = async () => {
     setEmailLoading(true);
     try {
@@ -454,32 +532,41 @@ const DetailIncident = () => {
       );
 
       setPrediction(response.data.prediction);
-      console.log(incident)
-      console.log(newlyFilteredProfiles)
+      console.log(incident);
+      console.log(newlyFilteredProfiles);
       setError(null);
       if (prediction) {
         const category = incidentTypes.find(
           (category) => category.name === prediction[0]
         );
-        if(prediction[0] === 'Facility and Maintenance Issues' || prediction[0] === 'Transportation and Parking'){
+        if (
+          prediction[0] === "Facility and Maintenance Issues" ||
+          prediction[0] === "Transportation and Parking"
+        ) {
           setIncident((prevIncident) => ({
             ...prevIncident,
             teams: [1],
           }));
         }
-        if(prediction[0] === 'Academic and Student Affairs' || prediction[0] === 'Administrative and Operational Issues'){
+        if (
+          prediction[0] === "Academic and Student Affairs" ||
+          prediction[0] === "Administrative and Operational Issues"
+        ) {
           setIncident((prevIncident) => ({
             ...prevIncident,
             teams: [5],
           }));
         }
-        if(prediction[0] === 'Security Incidents' || prediction[0] === 'Health and Safety'){
+        if (
+          prediction[0] === "Security Incidents" ||
+          prediction[0] === "Health and Safety"
+        ) {
           setIncident((prevIncident) => ({
             ...prevIncident,
             teams: [2],
           }));
         }
-        if(prediction[0] === 'IT and Network Issues'){
+        if (prediction[0] === "IT and Network Issues") {
           setIncident((prevIncident) => ({
             ...prevIncident,
             teams: [3],
@@ -494,7 +581,7 @@ const DetailIncident = () => {
     } catch (err) {
       setError(err.response ? err.response.data.error : err.message);
       setPrediction(null);
-    } finally{
+    } finally {
       await handleAccept();
       const randomIds = getRandomIds(profiles, 2);
       setIncident((prevIncident) => ({
@@ -527,73 +614,106 @@ const DetailIncident = () => {
           Back
         </Button>
       </div>
-      <Header
-        title="INCIDENT DETAIL"
-        subtitle="Detailed view of the Incident"
-      />
-      <IncidentProgress status={incident.status} />
-      <Grid item xs={12} mt="20px">
+      <Grid container spacing={2}>
+        <Grid item xs={3}>
+          <Header
+            title="INCIDENT DETAIL"
+            subtitle={`Detailed view of the Incident ${incident.title}`}
+          />
+        </Grid>
+        <Grid item xs={9}>
+          <IncidentProgress status={incident.status} />
+        </Grid>
+      </Grid>
+      <Grid item xs={12} mt="20px" mb="20px">
         <div className="flex space-x-4">
-          {/* {incident?.status === "Open" ? ( */}
-          <>
-            <Button
-              onClick={handlePredict}
-              variant="contained"
-              color="secondary"
-            >
-              Accept
-            </Button>
-            <Button onClick={handleReject} variant="outlined" color="error">
-              Reject
-            </Button>
-          </>
-          {/* ) : ( */}
-          <>
-            <Button
-              onClick={() => handleSave()}
-              variant="contained"
-              color="secondary"
-            >
-              Update Incident
-            </Button>
-            {/* {incident?.status === "In Progress" && ( */}
+          {incident?.status === "Open" ? (
             <>
-              <Button onClick={handleResolve} variant="contained" color="info">
-                Resolve Incident
-              </Button>
-              <Button onClick={handleSendMail} variant="contained" color="info">
-                Assign Members
-              </Button>
-              {/* {incident?.status !== "Escalated" && ( */}
               <Button
-                onClick={handleEscalate}
+                onClick={handlePredict}
                 variant="contained"
-                color="warning"
+                color="secondary"
               >
-                Escalate Incident
+                Accept
               </Button>
-              {/* )} */}
+              <Button onClick={handleReject} variant="outlined" color="error">
+                Reject
+              </Button>
             </>
-            {/* )} */}
-            <Button onClick={handleDelete} variant="contained" color="error">
-              Delete Incident
-            </Button>
-            <Button onClick={handleReject} variant="contained" color="primary">
-              Reject
-            </Button>
-            {/* {incident?.status === "Resolved" && ( */}
-            <Button onClick={handleClose} variant="contained" color="primary">
-              Close
-            </Button>
-            {/* )} */}
-          </>
-          {/* )} */}
+          ) : (
+            <>
+              {isEditable && (
+                <Button
+                  onClick={() => handleSave()}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Save
+                </Button>
+              )}
+              {!isEditable && (
+                <Button
+                  onClick={() => handleEdit()}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Edit
+                </Button>
+              )}
+
+              {incident?.status === "In Progress" && (
+                <>
+                  <Button
+                    onClick={handleSendMail}
+                    variant="contained"
+                    color="info"
+                  >
+                    Assign Members
+                  </Button>
+                </>
+              )}
+              {incident?.status === "Assign" && (
+                <>
+                  <Button
+                    onClick={handleResolve}
+                    variant="contained"
+                    color="info"
+                  >
+                    Resolve Incident
+                  </Button>
+                  {incident?.status !== "Escalated" && (
+                    <Button
+                      onClick={handleEscalate}
+                      variant="contained"
+                      color="warning"
+                    >
+                      Escalate Incident
+                    </Button>
+                  )}
+                </>
+              )}
+              <Button onClick={handleDelete} variant="contained" color="error">
+                Delete Incident
+              </Button>
+              <Button onClick={handleReject} variant="outlined" color="error">
+                Reject
+              </Button>
+              {incident?.status === "Resolved" && (
+                <Button
+                  onClick={handleClose}
+                  variant="contained"
+                  color="primary"
+                >
+                  Close
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid item xs={12} className="border-t border-gray-300">
         <Tabs
-          className="mt-7"
           value={value}
           onChange={handleChange}
           aria-label="incident details tabs"
@@ -601,6 +721,7 @@ const DetailIncident = () => {
             "& .MuiTab-root": {
               color: "#ffffff", // Default text color
               textTransform: "none",
+              
               "&:hover": {
                 backgroundColor: "#115293", // Hover background color
               },
@@ -612,13 +733,16 @@ const DetailIncident = () => {
           }}
         >
           <Tab label="Details" />
+          <Tab sx={{ marginLeft: "15px" , borderColor:"#FFFFFF"}} label="Tasks" />
           <Tab sx={{ marginLeft: "15px" }} label="Resolutions" />
+          <Tab sx={{ marginLeft: "15px" }} label="Escalation History" />
         </Tabs>
         <TabPanel value={value} index={0}>
           <Box>
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField
+                  color="info"
                   label="Title"
                   name="title"
                   value={incident.title}
@@ -628,6 +752,7 @@ const DetailIncident = () => {
                   disabled={!isEditable}
                 />
                 <TextField
+                  color="info"
                   label="Description"
                   name="description"
                   value={incident.description}
@@ -639,6 +764,7 @@ const DetailIncident = () => {
                   disabled={!isEditable}
                 />
                 <TextField
+                  color="info"
                   label="User"
                   name="user_name"
                   disabled={true}
@@ -647,9 +773,15 @@ const DetailIncident = () => {
                   fullWidth
                   margin="normal"
                 />
-                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
                   <InputLabel>Status</InputLabel>
                   <Select
+                    color="info"
                     label="Status"
                     name="status"
                     value={incident.status}
@@ -666,9 +798,15 @@ const DetailIncident = () => {
                     <MenuItem value="Rejected">Rejected</MenuItem>
                   </Select>
                 </FormControl>
-                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
                   <InputLabel>Priority</InputLabel>
                   <Select
+                    color="info"
                     label="Priority"
                     name="priority"
                     value={incident.priority}
@@ -695,6 +833,7 @@ const DetailIncident = () => {
                   onChange={handleIncidentTypeChange}
                   renderInput={(params) => (
                     <TextField
+                      color="info"
                       {...params}
                       label="Incident Type"
                       fullWidth
@@ -714,6 +853,7 @@ const DetailIncident = () => {
                   onChange={handleTeamsChange}
                   renderInput={(params) => (
                     <TextField
+                      color="info"
                       {...params}
                       label="Teams"
                       fullWidth
@@ -732,6 +872,7 @@ const DetailIncident = () => {
                   onChange={handleAssignedToChange}
                   renderInput={(params) => (
                     <TextField
+                      color="info"
                       {...params}
                       label="Assigned To"
                       fullWidth
@@ -739,9 +880,15 @@ const DetailIncident = () => {
                     />
                   )}
                 />
-                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
                   <InputLabel>Faculty</InputLabel>
                   <Select
+                    color="info"
                     label="Faculty"
                     name="faculty"
                     value={incident.faculty}
@@ -756,9 +903,15 @@ const DetailIncident = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
                   <InputLabel>Building</InputLabel>
                   <Select
+                    color="info"
                     label="Building"
                     name="building"
                     value={incident.building}
@@ -773,9 +926,15 @@ const DetailIncident = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
                   <InputLabel>Floor</InputLabel>
                   <Select
+                    color="info"
                     label="Floor"
                     name="floor"
                     value={incident.floor}
@@ -790,9 +949,15 @@ const DetailIncident = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl fullWidth margin="normal" disabled={!isEditable}>
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
                   <InputLabel>Classroom</InputLabel>
                   <Select
+                    color="info"
                     label="Classroom"
                     name="classroom"
                     value={incident.classroom}
@@ -820,7 +985,7 @@ const DetailIncident = () => {
           )}
         </TabPanel>
         {resolutions && (
-          <TabPanel value={value} index={1}>
+          <TabPanel value={value} index={2}>
             <Box
               m="40px 0 0 0"
               height="100vh"
@@ -854,11 +1019,87 @@ const DetailIncident = () => {
                 autoPageSize
                 className="cursor-pointer"
                 rows={resolutions}
-                columns={columns}
+                columns={Resolutioncolumns}
               />
             </Box>
           </TabPanel>
         )}
+        <TabPanel value={value} index={1}>
+          <Box
+            m="40px 0 0 0"
+            height="100vh"
+            sx={{
+              "& .MuiDataGrid-root": {
+                border: "none",
+              },
+              "& .MuiDataGrid-cell": {
+                borderBottom: "none",
+              },
+              "& .title-column--cell": {
+                color: colors.greenAccent[300],
+              },
+              "& .MuiDataGrid-columnHeaders": {
+                backgroundColor: colors.blueAccent[700],
+                borderBottom: "none",
+              },
+              "& .MuiDataGrid-virtualScroller": {
+                backgroundColor: colors.primary[400],
+              },
+              "& .MuiDataGrid-footerContainer": {
+                borderTop: "none",
+                backgroundColor: colors.blueAccent[700],
+              },
+              "& .MuiCheckbox-root": {
+                color: `${colors.greenAccent[200]} !important`,
+              },
+            }}
+          >
+            <DataGrid
+              autoPageSize
+              className="cursor-pointer"
+              rows={resolutions}
+              columns={Taskcolumns}
+            />
+          </Box>
+        </TabPanel>
+        <TabPanel value={value} index={3}>
+          <Box
+            m="40px 0 0 0"
+            height="100vh"
+            sx={{
+              "& .MuiDataGrid-root": {
+                border: "none",
+              },
+              "& .MuiDataGrid-cell": {
+                borderBottom: "none",
+              },
+              "& .title-column--cell": {
+                color: colors.greenAccent[300],
+              },
+              "& .MuiDataGrid-columnHeaders": {
+                backgroundColor: colors.blueAccent[700],
+                borderBottom: "none",
+              },
+              "& .MuiDataGrid-virtualScroller": {
+                backgroundColor: colors.primary[400],
+              },
+              "& .MuiDataGrid-footerContainer": {
+                borderTop: "none",
+                backgroundColor: colors.blueAccent[700],
+              },
+              "& .MuiCheckbox-root": {
+                color: `${colors.greenAccent[200]} !important`,
+              },
+            }}
+          >
+            <DataGrid
+              autoPageSize
+              className="cursor-pointer"
+              rows={resolutions}
+              columns={EscaltionHistorycolumns}
+            />
+          </Box>
+        </TabPanel>
       </Grid>
 
       <EscalateDialog
@@ -873,6 +1114,8 @@ const DetailIncident = () => {
         onPreviousLevelChange={handlePreviousLevelChange}
         newLevel={newLevel}
         onNewLevelChange={handleNewLevelChange}
+        profiles={profiles}
+        handleSelectChange={handleEscalatedToChange}
       />
       <ResolveIncidentDialog
         incident={incident}
@@ -885,21 +1128,6 @@ const DetailIncident = () => {
     </Box>
   );
 };
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ marginTop: "10px" }}>{children}</Box>}
-    </div>
-  );
-}
 export default DetailIncident;
 
 // TODO: Resolve BUTTON TO BE VISIBLE AND INVISIBLE

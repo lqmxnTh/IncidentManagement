@@ -1,13 +1,14 @@
 from rest_framework import serializers
-from .models import Incident, Resolution,EscalationHistory,IncidentType, Task
+from .models import Incident, Resolution,EscalationHistory,IncidentType, Steps, Task, WorkFlow
 from api.models import *
 from location.models import *
 from django.contrib.auth.models import User
+from api.serializers import ProfileSerializer
 
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = ['id','profile', 'user', 'studentId', 'course', 'level', 'role']  # Add other fields as needed
+# class ProfileSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Profile
+#         fields = ['id','profile', 'user', 'studentId', 'course', 'level', 'role']  # Add other fields as needed
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -144,3 +145,24 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = '__all__'
+        
+class StepsSerializer(serializers.ModelSerializer):
+    attendees = ProfileSerializer(many=True, read_only=True)
+    category = IncidentTypeSerializer(read_only=True)
+
+    class Meta:
+        model = Steps
+        fields = '__all__'
+            
+class WorkFlowSerializer(serializers.ModelSerializer):
+    steps = StepsSerializer(many=True, read_only=True)
+    created_by = ProfileSerializer(read_only=True)
+    category = IncidentTypeSerializer(read_only=True)
+    number_of_steps = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WorkFlow
+        fields = '__all__'
+        
+    def get_number_of_steps(self, obj):
+        return obj.steps.count()

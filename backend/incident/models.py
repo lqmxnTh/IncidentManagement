@@ -94,9 +94,34 @@ class EscalationHistory(models.Model):
 class Task(models.Model):
     name = models.CharField(max_length=200)
     incident = models.ForeignKey(Incident,blank=True,null=True,on_delete=models.CASCADE)
-    profile = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
+    created_by = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
+    task_to = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE,  related_name="task_to")
     timestamp = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
     forfeited = models.BooleanField(default=False)
-    forfeited_reason = models.TextField()
+    forfeited_reason = models.TextField(blank=True)
+    
+    def __str__(self):
+        return f'Task {self.name} {self.incident.title}'
+    
+class Steps(models.Model):
+    step = models.IntegerField()
+    name = models.TextField(blank=True)
+    attendees = models.ManyToManyField(Profile,blank=True,default=None)
+    category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f'Steps for {self.name} {self.category}'
+    
+class WorkFlow(models.Model):
+    name = models.TextField(blank=True)
+    created_by = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
+    category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
+    steps = models.ManyToManyField(Steps,blank=True,default=None)
+    emmergency = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f'Workflow for {self.name} {self.category.name}'
     
