@@ -1,3 +1,4 @@
+from cv2 import FACE_RECOGNIZER_SF_FR_COSINE
 from rest_framework import serializers
 from .models import Incident, Resolution,EscalationHistory,IncidentType, Steps, Task, WorkFlow
 from api.models import *
@@ -10,6 +11,49 @@ from api.serializers import ProfileSerializer
 #         model = Profile
 #         fields = ['id','profile', 'user', 'studentId', 'course', 'level', 'role']  # Add other fields as needed
 
+class IncidentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IncidentType
+        fields = '__all__'
+        
+class StepsViewOnlySerializer(serializers.ModelSerializer):
+    attendees = ProfileSerializer(read_only=True)
+    category = IncidentTypeSerializer(read_only=True)
+
+    class Meta:
+        model = Steps
+        fields = '__all__'
+            
+class StepsCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Steps
+        fields = ['step', 'name', 'attendees', 'category']
+    
+    def create(self, validated_data):
+        # Create the step instance
+        step = Steps.objects.create(**validated_data)
+        
+        # Get the workflow from context (you will pass it in the view)
+        workflow = self.context['workflow']
+        
+        # Add the newly created step to the workflow
+        workflow.steps.add(step)
+        
+        return step
+            
+class WorkFlowSerializer(serializers.ModelSerializer):
+    # steps = StepsSerializer(many=True, read_only=False)
+    created_by = ProfileSerializer(read_only=True)
+    # category = IncidentTypeSerializer(read_only=False)
+    number_of_steps = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WorkFlow
+        fields = '__all__'
+        
+    def get_number_of_steps(self, obj):
+        return obj.steps.count()
+    
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -38,7 +82,6 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
     building_name = serializers.SerializerMethodField()
     formatted_created_at = serializers.SerializerMethodField()
     formatted_updated_at = serializers.SerializerMethodField()
-
     class Meta:
         model = Incident
         fields = [
@@ -70,7 +113,7 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
             'longitude',
             'assigned_to',
             'accepted',
-            # 'resolutions',
+            'workflow',
         ]
 
     def get_user_name(self, obj):
@@ -123,7 +166,7 @@ class IncidentSerializer(serializers.ModelSerializer):
             'longitude',
             'assigned_to',
             'accepted',
-            # 'resolutions',
+            'worflow',
             ]
 
 class ResolutionSerializer(serializers.ModelSerializer):
@@ -135,53 +178,12 @@ class EscalationHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = EscalationHistory
         fields = '__all__'
-        
-class IncidentTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = IncidentType
-        fields = '__all__'
 
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = '__all__'
         
-class StepsViewOnlySerializer(serializers.ModelSerializer):
-    attendees = ProfileSerializer(read_only=True)
-    category = IncidentTypeSerializer(read_only=True)
 
-    class Meta:
-        model = Steps
-        fields = '__all__'
-            
-class StepsCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Steps
-        fields = ['step', 'name', 'attendees', 'category']
-    
-    def create(self, validated_data):
-        # Create the step instance
-        step = Steps.objects.create(**validated_data)
-        
-        # Get the workflow from context (you will pass it in the view)
-        workflow = self.context['workflow']
-        
-        # Add the newly created step to the workflow
-        workflow.steps.add(step)
-        
-        return step
-            
-class WorkFlowSerializer(serializers.ModelSerializer):
-    # steps = StepsSerializer(many=True, read_only=False)
-    created_by = ProfileSerializer(read_only=True)
-    # category = IncidentTypeSerializer(read_only=False)
-    number_of_steps = serializers.SerializerMethodField()
-
-    class Meta:
-        model = WorkFlow
-        fields = '__all__'
-        
-    def get_number_of_steps(self, obj):
-        return obj.steps.count()
     
     

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Reorder } from "framer-motion";
 import {
   Table,
@@ -12,22 +12,17 @@ import {
 } from "@mui/material";
 import makeRequest from "../hooks/utils";
 import { useParams } from "react-router-dom";
-import {
-  SquaresPlusIcon,
-  UserGroupIcon,
-  Bars4Icon,
-  SunIcon,
-  GlobeAmericasIcon,
-  PhoneIcon,
-  NewspaperIcon,
-  RectangleGroupIcon,
-  PencilSquareIcon,
-} from "@heroicons/react/24/solid";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
 
 function StepTable({ steps }) {
   const { id } = useParams();
   const [reorderedSteps, setReorderedSteps] = useState(steps);
   const [emailLoading, setEmailLoading] = useState(false);
+
+  // Update reorderedSteps when steps prop changes
+  useEffect(() => {
+    setReorderedSteps(steps);
+  }, [steps]);
 
   function SaveStepsOrder(arr) {
     try {
@@ -52,6 +47,13 @@ function StepTable({ steps }) {
     setEmailLoading(true);
   };
 
+  const handleEdit = () =>{
+
+  }
+  const handleDelete = () =>{
+
+  }
+
   return (
     <>
       {emailLoading && (
@@ -72,6 +74,7 @@ function StepTable({ steps }) {
                 <TableCell>Attendees</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell align="center">Edit</TableCell>
+                <TableCell align="center">Delete</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -82,11 +85,21 @@ function StepTable({ steps }) {
                   <TableCell>{step.attendees?.user_name}</TableCell>
                   <TableCell>{step.category?.name || "No Category"}</TableCell>
                   <TableCell align="center">
-                    <Button>
+                    <Button onClick={()=>{console.log(step.id)}}>
                       <div className="flex items-center justify-center rounded-lg !bg-blue-gray-50 p-1 ">
                         {React.createElement(PencilSquareIcon, {
                           strokeWidth: 2,
                           className: "h-6 text-gray-900 w-6",
+                        })}
+                      </div>
+                    </Button>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Button onClick={()=>{console.log(step.id)}}>
+                      <div className="flex items-center justify-center rounded-lg bg-red-400 p-1">
+                        {React.createElement(TrashIcon, {
+                          strokeWidth: 2,
+                          className: "h-6 text-white w-6",
                         })}
                       </div>
                     </Button>

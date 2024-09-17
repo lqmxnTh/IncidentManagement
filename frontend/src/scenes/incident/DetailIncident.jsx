@@ -22,14 +22,24 @@ import Header from "../../components/Header";
 import IncidentProgress from "../../components/IncidentProgress";
 import EscalateDialog from "../../components/EscalateDialog";
 import ResolveIncidentDialog from "../../components/ResolveIncidentDialog";
-import { updateItemStatus } from "../../hooks/utils";
+import makeRequest, {
+  handleInputChange,
+  LoginUserData,
+  updateItemStatus,
+} from "../../hooks/utils";
 import MapComponent from "../../components/MapComponent";
 import { useCookies } from "react-cookie";
 import { DataGrid } from "@mui/x-data-grid";
 import { TabPanel } from "../../components/TabPanel";
+import RenderItemsCell from "../../hooks/RenderItemsCell";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
+import EditTaskDialogue from "../../components/EditTaskDialogue";
+import AddNewTaskDialogue from "../../components/AddNewTaskDialogue";
 
 const DetailIncident = () => {
   const { id } = useParams();
+  const [cookies] = useCookies(["user"]);
+  const user = cookies?.user;
   const baseURL = import.meta.env.VITE_API_URL;
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -37,6 +47,8 @@ const DetailIncident = () => {
   const [resolutionsReset, setResolutionsReset] = useState(false);
   const [incident, setIncident] = useState(null);
   const [faculties, setFaculties] = useState([]);
+  const [workflows, setWorkflows] = useState([]);
+  const [steps, setSteps] = useState(null);
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
@@ -54,9 +66,14 @@ const DetailIncident = () => {
   const [emailLoading, setEmailLoading] = useState(false);
   const [value, setValue] = React.useState(0);
   const [prediction, setPrediction] = useState(null);
-  const [error, setError] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
-
+  const [logUser, setLogUser] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [refreshTasks, setRefreshTasks] = useState(false);
+  const [isDialogAddaTaskOpen, setDialogAddaTaskOpen] = useState(false);
+  const [isDialogEditTaskOpen, setDialogEditTaskOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState([]);
+  const [escalations, setEscalation] = useState([]);
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -123,7 +140,7 @@ const DetailIncident = () => {
   const EscaltionHistorycolumns = [
     { field: "id", headerName: "ID" },
     {
-      field: "escaltion_type",
+      field: "escalation_type",
       headerName: "Escaltion Type",
       flex: 1,
       cellClassName: "title-column--cell",
@@ -145,10 +162,14 @@ const DetailIncident = () => {
     },
     {
       field: "escalated_to",
-      headerName: "Teams",
+      headerName: "Escalated To",
       flex: 1,
       renderCell: (params) => (
-        <TeamsCells teamsIds={params.value} allTeams={teams} />
+        <RenderItemsCell
+          ids={params.value}
+          allItems={profiles}
+          name={"user_name"}
+        />
       ),
     },
   ];
@@ -158,6 +179,13 @@ const DetailIncident = () => {
       field: "created_by",
       headerName: "Created By",
       flex: 1,
+      renderCell: (params) => (
+        <RenderItemsCell
+          ids={[params.value]}
+          allItems={profiles}
+          name={"user_name"}
+        />
+      ),
     },
     {
       field: "name",
@@ -169,6 +197,13 @@ const DetailIncident = () => {
       field: "task_to",
       headerName: "Task To",
       flex: 1,
+      renderCell: (params) => (
+        <RenderItemsCell
+          ids={[params.value]}
+          allItems={profiles}
+          name={"user_name"}
+        />
+      ),
     },
     {
       field: "completed",
@@ -185,7 +220,52 @@ const DetailIncident = () => {
       headerName: "Forfeit Reason",
       flex: 1,
     },
+    {
+      field: "edit", // Add Edit column
+      headerName: "Edit",
+      flex: 1,
+      headerAlign: "center",
+      align: "center",
+      renderCell: (params) => (
+        <Button
+          onClick={() => {
+            handleEditTask(params.row.id);
+          }}
+          style={{ color: "blue", cursor: "pointer" }}
+        >
+          <div className="flex items-center justify-center rounded-lg !bg-blue-gray-50 p-1 ">
+            {React.createElement(PencilSquareIcon, {
+              strokeWidth: 2,
+              className: "h-6 text-gray-900 w-6",
+            })}
+          </div>
+        </Button>
+      ),
+    },
+    {
+      field: "delete", // Add Delete column
+      headerName: "Delete",
+      headerAlign: "center",
+      align: "center",
+      flex: 1,
+      renderCell: (params) => (
+        <Button
+          onClick={() => {
+            handleDeleteSelectedTask(params.row.id);
+          }}
+          style={{ color: "red", cursor: "pointer" }}
+        >
+          <div className="flex items-center justify-center rounded-lg bg-red-400 p-1">
+            {React.createElement(TrashIcon, {
+              strokeWidth: 2,
+              className: "h-6 text-white w-6",
+            })}
+          </div>
+        </Button>
+      ),
+    },
   ];
+
   useEffect(() => {
     const fetchIncident = async () => {
       try {
@@ -197,6 +277,46 @@ const DetailIncident = () => {
     };
 
     fetchIncident();
+  }, [id, baseURL]);
+
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/profiles/user/${user?.id}`)
+      .then((response) => setLogUser(response.data))
+      .catch((error) => console.error("Error fetching profiles", error));
+  }, [baseURL, user]);
+  useEffect(() => {
+    axios
+      .get(`${baseURL}/api/escalations/incident/${id}/`)
+      .then((response) => setEscalation(response.data))
+      .catch((error) => console.error("Error fetching escalations", error));
+  }, [baseURL, user]);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await axios.get(
+          `${baseURL}/api/incidents/${id}/tasks/`
+        );
+        setTasks(response.data.sort((a, b) => a.step - b.step));
+      } catch (error) {
+        console.error("Failed to fetch incident details:", error);
+      }
+    };
+
+    fetchTasks();
+  }, [id, baseURL, refreshTasks]);
+  useEffect(() => {
+    const fetchWorkflow = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/workflows/`);
+        setWorkflows(response.data);
+      } catch (error) {
+        console.error("Failed to fetch incident details:", error);
+      }
+    };
+
+    fetchWorkflow();
   }, [id, baseURL]);
 
   useEffect(() => {
@@ -282,7 +402,26 @@ const DetailIncident = () => {
       .catch((error) => console.error("Error fetching profiles:", error));
   }, [baseURL]);
 
-  const handleInputChange = (e) => {
+  const handleSelectedTaskSelectChange = (e) => {
+    const { name, value } = e.target;
+    setSelectedTask((prevIncident) => ({
+      ...prevIncident,
+      [name]: value,
+    }));
+  };
+  const handleSelectedTaskSubmit = async () => {
+    await makeRequest("PUT", `api/tasks/${selectedTask.id}/`, selectedTask);
+    handleEditTaskClose();
+    setRefreshTasks(!refreshTasks);
+  };
+  const handleDeleteSelectedTask = async (id) => {
+    setEmailLoading(true);
+    await makeRequest("DELETE", `api/tasks/${id}/`, selectedTask);
+    setRefreshTasks(!refreshTasks);
+    setEmailLoading(false);
+  };
+
+  const handleIncidentInputChange = (e) => {
     const { name, value } = e.target;
     setIncident((prevIncident) => ({
       ...prevIncident,
@@ -345,6 +484,16 @@ const DetailIncident = () => {
     setResolveDialogOpen(true);
   };
 
+  const handleAddTask = () => {
+    setDialogAddaTaskOpen(true);
+  };
+
+  const handleEditTask = async (id) => {
+    setDialogEditTaskOpen(true);
+    const response = await makeRequest("GET", `/api/tasks/${id}/`);
+    setSelectedTask(response);
+  };
+
   const handleSendMail = async () => {
     if (incident) {
       setEmailLoading(true);
@@ -370,11 +519,11 @@ const DetailIncident = () => {
           }));
         } else {
           console.error("Failed to send emails");
-          alert("Failed to send Mail")
+          alert("Failed to send Mail");
         }
         // Update incident status
       } catch (error) {
-        alert(error.response.data.error)
+        alert(error.response.data.error);
       } finally {
         setEmailLoading(false); // Hide spinner and re-enable page
       }
@@ -388,7 +537,7 @@ const DetailIncident = () => {
   const handleEscalateConfirm = async () => {
     try {
       const escalationData = {
-        escalated_by: profiles[0]?.id,
+        escalated_by: logUser.id,
         escalated_to: [escalatedTo],
         incident: id,
         escalation_type: escalationType,
@@ -440,6 +589,14 @@ const DetailIncident = () => {
 
   const handleResolveClose = async () => {
     setResolveDialogOpen(false);
+  };
+
+  const handleAddaTaskClose = async () => {
+    setDialogAddaTaskOpen(false);
+  };
+
+  const handleEditTaskClose = () => {
+    setDialogEditTaskOpen(false);
   };
 
   const handleSaveResolveClose = async () => {
@@ -516,6 +673,41 @@ const DetailIncident = () => {
 
     return selectedIds;
   }
+
+  const createTasks = async () => {
+    setEmailLoading(true);
+    if (incident.workflow) {
+      const response = await axios.get(
+        `${baseURL}/api/workflows/${incident.workflow}/steps/`
+      );
+
+      setSteps(response.data);
+
+      try {
+        response.data.forEach((element) => {
+          let data = {
+            step: element.step,
+            name: element?.name,
+            completed: false,
+            forfeited: false,
+            incident: incident.id,
+            created_by: logUser.id, //hardcoded
+            task_to: element.attendees.id, //hardcoded
+          };
+          try {
+            makeRequest("POST", `/api/tasks/`, data);
+          } catch (error) {
+            console.log(error);
+          }
+        });
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setEmailLoading(false);
+        setRefreshTasks(true);
+      }
+    }
+  };
   const handlePredict = async () => {
     setEmailLoading(true);
     try {
@@ -532,9 +724,6 @@ const DetailIncident = () => {
       );
 
       setPrediction(response.data.prediction);
-      console.log(incident);
-      console.log(newlyFilteredProfiles);
-      setError(null);
       if (prediction) {
         const category = incidentTypes.find(
           (category) => category.name === prediction[0]
@@ -579,7 +768,7 @@ const DetailIncident = () => {
         }));
       }
     } catch (err) {
-      setError(err.response ? err.response.data.error : err.message);
+      console.log(err.response ? err.response.data.error : err.message);
       setPrediction(null);
     } finally {
       await handleAccept();
@@ -591,6 +780,7 @@ const DetailIncident = () => {
       setEmailLoading(false);
     }
   };
+
   return (
     <Box m="20px">
       {emailLoading && (
@@ -707,6 +897,14 @@ const DetailIncident = () => {
                   Close
                 </Button>
               )}
+
+              <Button
+                onClick={createTasks}
+                variant="contained"
+                color="secondary"
+              >
+                Create Tasks
+              </Button>
             </>
           )}
         </div>
@@ -721,7 +919,7 @@ const DetailIncident = () => {
             "& .MuiTab-root": {
               color: "#ffffff", // Default text color
               textTransform: "none",
-              
+
               "&:hover": {
                 backgroundColor: "#115293", // Hover background color
               },
@@ -733,7 +931,10 @@ const DetailIncident = () => {
           }}
         >
           <Tab label="Details" />
-          <Tab sx={{ marginLeft: "15px" , borderColor:"#FFFFFF"}} label="Tasks" />
+          <Tab
+            sx={{ marginLeft: "15px", borderColor: "#FFFFFF" }}
+            label="Tasks"
+          />
           <Tab sx={{ marginLeft: "15px" }} label="Resolutions" />
           <Tab sx={{ marginLeft: "15px" }} label="Escalation History" />
         </Tabs>
@@ -746,7 +947,7 @@ const DetailIncident = () => {
                   label="Title"
                   name="title"
                   value={incident.title}
-                  onChange={handleInputChange}
+                  onChange={handleIncidentInputChange}
                   fullWidth
                   margin="normal"
                   disabled={!isEditable}
@@ -756,7 +957,7 @@ const DetailIncident = () => {
                   label="Description"
                   name="description"
                   value={incident.description}
-                  onChange={handleInputChange}
+                  onChange={handleIncidentInputChange}
                   fullWidth
                   margin="normal"
                   multiline
@@ -769,7 +970,7 @@ const DetailIncident = () => {
                   name="user_name"
                   disabled={true}
                   value={incident.user_name}
-                  onChange={handleInputChange}
+                  onChange={handleIncidentInputChange}
                   fullWidth
                   margin="normal"
                 />
@@ -880,6 +1081,29 @@ const DetailIncident = () => {
                     />
                   )}
                 />
+                <FormControl
+                  color="info"
+                  fullWidth
+                  margin="normal"
+                  disabled={!isEditable}
+                >
+                  <InputLabel>Workflow</InputLabel>
+                  <Select
+                    color="info"
+                    label="Workflow"
+                    name="workflow"
+                    value={incident.workflow}
+                    onChange={handleSelectChange}
+                    fullWidth
+                    margin="normal"
+                  >
+                    {workflows.map((workflow) => (
+                      <MenuItem key={workflow.id} value={workflow.id}>
+                        {workflow.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <FormControl
                   color="info"
                   fullWidth
@@ -1025,8 +1249,11 @@ const DetailIncident = () => {
           </TabPanel>
         )}
         <TabPanel value={value} index={1}>
+          <Button onClick={handleAddTask} variant="outlined" color="secondary">
+            Add a Task
+          </Button>
           <Box
-            m="40px 0 0 0"
+            m="20px 0 0 0"
             height="100vh"
             sx={{
               "& .MuiDataGrid-root": {
@@ -1057,7 +1284,7 @@ const DetailIncident = () => {
             <DataGrid
               autoPageSize
               className="cursor-pointer"
-              rows={resolutions}
+              rows={tasks}
               columns={Taskcolumns}
             />
           </Box>
@@ -1095,7 +1322,7 @@ const DetailIncident = () => {
             <DataGrid
               autoPageSize
               className="cursor-pointer"
-              rows={resolutions}
+              rows={escalations}
               columns={EscaltionHistorycolumns}
             />
           </Box>
@@ -1124,6 +1351,24 @@ const DetailIncident = () => {
         save={handleSaveResolveClose}
         teams={incident?.teams}
         incidentId={id}
+      />
+      <EditTaskDialogue
+        isOpen={isDialogEditTaskOpen}
+        handleClose={handleEditTaskClose}
+        data={selectedTask}
+        handleInputChange={(e) => handleInputChange(e, setSelectedTask)}
+        handleSelectedTaskSelectChange={handleSelectedTaskSelectChange}
+        handleSelectedTaskSubmit={handleSelectedTaskSubmit}
+      />
+      <AddNewTaskDialogue
+        isOpen={isDialogAddaTaskOpen}
+        handleClose={handleAddaTaskClose}
+        taskData={tasks}
+        logUserData={logUser.id}
+        incident_id={id}
+        refreshTasks={() => {
+          setRefreshTasks(!refreshTasks);
+        }}
       />
     </Box>
   );

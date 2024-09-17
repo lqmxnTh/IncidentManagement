@@ -43,6 +43,13 @@ class ResolutionByIncidentViewSet(generics.ListAPIView):
         incident_id = self.kwargs['incident_id']
         return Resolution.objects.filter(incident_id=incident_id)
     
+class EscalationByIncidentViewSet(generics.ListAPIView):
+    serializer_class = EscalationHistorySerializer
+
+    def get_queryset(self):
+        incident_id = self.kwargs['incident_id']
+        return EscalationHistory.objects.filter(incident_id=incident_id)
+    
 class EscalationHistoryViewSet(viewsets.ModelViewSet):
     queryset = EscalationHistory.objects.all()
     serializer_class = EscalationHistorySerializer
@@ -52,6 +59,10 @@ class IncidentTypeListView(generics.ListAPIView):
     serializer_class = IncidentTypeSerializer
 
 class TaskListView(generics.ListCreateAPIView):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    
+class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
 
@@ -79,7 +90,6 @@ class AddStepToWorkflowView(APIView):
     def post(self, request, workflow_id):
         workflow = WorkFlow.objects.get(id=workflow_id)
         
-        # Pass the workflow instance to the serializer context
         serializer = StepsCreateSerializer(data=request.data, context={'workflow': workflow})
         
         if serializer.is_valid():
@@ -87,6 +97,31 @@ class AddStepToWorkflowView(APIView):
             return Response({'status': 'Step added', 'step': serializer.data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class StepsByWorkflowView(generics.ListAPIView):
+    serializer_class = StepsViewOnlySerializer
+    
+    def get_queryset(self):
+        workflow_id = self.kwargs['workflow_id']
+        try:
+            workflow = WorkFlow.objects.get(id=workflow_id)
+            return workflow.steps.all()  # Return the steps related to the workflow
+        except WorkFlow.DoesNotExist:
+            return Steps.objects.none()  # Return empty queryset if workflow not found
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({"detail": "Workflow not found or no steps available."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+class TasksByIncidentView(generics.ListAPIView):
+    serializer_class = TaskSerializer
+
+    def get_queryset(self):
+        incident_id = self.kwargs['incident_id']
+        return Task.objects.filter(incident_id=incident_id) 
+    
 class SendAssignmentEmail(APIView):
     def post(self, request, incident_id):
         try:

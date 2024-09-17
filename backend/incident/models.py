@@ -5,11 +5,43 @@ from api.models import Profile, Team
 from location.models import Classroom, Faculty, Building
 from django.forms import ValidationError
 from django.contrib.auth.models import User
+
+
 class IncidentType(models.Model):
     name = models.CharField(max_length=250)
     
     def __str__(self):
         return self.name
+    
+class Steps(models.Model):
+    step = models.IntegerField(blank=True)
+    name = models.TextField(blank=True)
+    attendees = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
+    category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f'Steps for {self.name} {self.category}'
+    
+class WorkFlow(models.Model):
+    name = models.TextField(blank=True)
+    created_by = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
+    category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
+    steps = models.ManyToManyField(Steps,blank=True,default=None)
+    emmergency = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f'Workflow for {self.name} {self.category.name}'
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Ensure the category of each step is the same as the workflow's category
+        if self.category and self.steps.exists():
+            for step in self.steps.all():
+                if step.category != self.category:
+                    step.category = self.category
+                    step.save()
 
 class Incident(models.Model):
     STATUS_CHOICES = [
@@ -49,7 +81,7 @@ class Incident(models.Model):
     longitude = models.FloatField(null=True,blank=True)
     assigned_to = models.ManyToManyField(Profile,blank=True,default=None, related_name='assigned_incidents')
     accepted = models.ManyToManyField(Profile,blank=True,default=None, related_name='accepted')
-    # resolutions = models.ManyToManyField(Resolution,blank=True,default=None)
+    workflow = models.ForeignKey(WorkFlow,on_delete=models.CASCADE, blank=True, null=True)
     
     def __str__(self):
         return self.title
@@ -100,37 +132,10 @@ class Task(models.Model):
     completed = models.BooleanField(default=False)
     forfeited = models.BooleanField(default=False)
     forfeited_reason = models.TextField(blank=True)
+    step = models.IntegerField(blank=True)
     
     def __str__(self):
         return f'Task {self.name} {self.incident.title}'
     
-class Steps(models.Model):
-    step = models.IntegerField(blank=True)
-    name = models.TextField(blank=True)
-    attendees = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
-    category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f'Steps for {self.name} {self.category}'
-    
-class WorkFlow(models.Model):
-    name = models.TextField(blank=True)
-    created_by = models.ForeignKey(Profile,blank=True,null=True,on_delete=models.CASCADE)
-    category = models.ForeignKey(IncidentType,blank=True,null=True,on_delete=models.CASCADE)
-    steps = models.ManyToManyField(Steps,blank=True,default=None)
-    emmergency = models.BooleanField(default=False)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f'Workflow for {self.name} {self.category.name}'
-    
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Ensure the category of each step is the same as the workflow's category
-        if self.category and self.steps.exists():
-            for step in self.steps.all():
-                if step.category != self.category:
-                    step.category = self.category
-                    step.save()
+
     

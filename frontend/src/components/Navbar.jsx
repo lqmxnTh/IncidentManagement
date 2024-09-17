@@ -17,6 +17,7 @@ export function NavbarDefault() {
   const [cookies, setCookie, removeCookie] = useCookies(["user"]);
   const [profile, setProfile] = useState([]);
   const user = cookies?.user;
+  
 
   const handleLogout = async () => {
     removeCookie("user");

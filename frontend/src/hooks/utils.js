@@ -82,9 +82,7 @@ export const handleSelectChangeWithFullData = (e, arr, variable) => {
   const { name, value } = e.target;
 
   // Find the selected category from the available categories
-  const selectedCategory = arr.find(
-    (categ) => categ.id === selectedCategoryId
-  );
+  const selectedCategory = arr.find((categ) => categ.id === selectedCategoryId);
 
   // Update the workflow state
   variable((prevWorkflow) => ({
@@ -93,3 +91,10 @@ export const handleSelectChangeWithFullData = (e, arr, variable) => {
   }));
 };
 
+import { useCookies } from "react-cookie";
+export const LoginUserData = () => {
+  const [cookies] = useCookies(["user"]);
+  const user = cookies?.user;
+
+  return user;
+};

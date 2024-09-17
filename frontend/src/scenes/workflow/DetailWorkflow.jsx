@@ -36,12 +36,14 @@ function DetailWorkflow() {
   const [value, setValue] = React.useState(0);
   const [isEditable, setIsEditable] = useState(false);
   const [open, setOpen] = useState(false);
+  const [refreshSteps, setRefreshSteps] = useState(false); // New state to trigger fetching steps
   const [formData, setFormData] = useState({
     name: "",
-    attendees: "", // Default to empty string to avoid null issues
+    attendees: "",
     category: workflow?.category || "",
     step: workflow?.number_of_steps + 1,
   });
+  const [filteredSteps, setFilteredSteps] = useState([]);
 
   const handleStepChange = (e) => {
     const { name, value } = e.target;
@@ -55,25 +57,24 @@ function DetailWorkflow() {
     const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: [value],
+      [name]: value,
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Implement your form submission logic here
-    console.log("Form data submitted:", formData);
-    // For example, you might want to send `formData` to a server or update state
     handleClose(); // Close the dialog on successful submission
   };
+
   const handleClickOpen = () => {
     setOpen(true);
   };
 
   const handleClose = async () => {
     try {
-      console.log(formData, workflow.category);
       await makeRequest("POST", `api/workflow/${id}/add_step/`, formData);
+      setRefreshSteps((prev) => !prev);
+      // Toggle the state to refresh the steps
     } catch (error) {
       console.error(error);
     } finally {
@@ -88,10 +89,10 @@ function DetailWorkflow() {
     }
 
     fetchWorkflow();
-  }, [id]);
+  }, [id, refreshSteps]);
+
   useEffect(() => {
     if (workflow) {
-      // Update formData when workflow is fetched
       setFormData({
         name: "",
         attendees: "",
@@ -101,6 +102,16 @@ function DetailWorkflow() {
     }
   }, [workflow]);
   useEffect(() => {
+    if (workflow && steps.length > 0) {
+      const updatedFilteredSteps = steps
+        .filter((step) => workflow?.steps.includes(step.id))
+        .slice()
+        .sort((a, b) => (a.step < b.step ? -1 : 1));
+
+      setFilteredSteps(updatedFilteredSteps);
+    }
+  }, [steps, workflow]);
+  useEffect(() => {
     async function fetchProfiles() {
       const response = await makeRequest("GET", `/api/profiles/`);
       setProfiles(response);
@@ -108,6 +119,7 @@ function DetailWorkflow() {
     fetchProfiles();
   }, [id]);
 
+  // Fetch steps whenever refreshSteps changes
   useEffect(() => {
     async function fetchSteps() {
       const response = await makeRequest("GET", `api/view-only-steps/`);
@@ -115,7 +127,7 @@ function DetailWorkflow() {
     }
 
     fetchSteps();
-  }, [id]);
+  }, [id, refreshSteps]); // Add refreshSteps as a dependency
 
   useEffect(() => {
     async function fetchCategory() {
@@ -288,16 +300,7 @@ function DetailWorkflow() {
               Add Step
             </Button>
             <Box marginTop={"20px"}>
-              <StepTable
-                steps={steps
-                  .filter((step) => workflow?.steps.includes(step.id))
-                  .slice()
-                  .sort((a, b) => {
-                    if (a.step < b.step) return -1;
-                    if (a.step > b.step) return 1;
-                    return 0;
-                  })}
-              />
+              <StepTable steps={filteredSteps} />
             </Box>
           </Box>
         </TabPanel>
