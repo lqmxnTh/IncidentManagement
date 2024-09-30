@@ -116,7 +116,7 @@ const Profiles = () => {
 
   return (
     <Box m="20px">
-      <Header title="TEAM" subtitle="Managing the Team roles" />
+      <Header title="Users" subtitle="Managing the users" />
 
       <Box
         m="20px 0 0 0"

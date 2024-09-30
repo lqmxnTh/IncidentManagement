@@ -137,5 +137,10 @@ class Task(models.Model):
     def __str__(self):
         return f'Task {self.name} {self.incident.title}'
     
-
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True,null=True)
+    message = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read_status = models.BooleanField(default=False)
+    link_path = models.CharField(max_length=255, blank=True)
     

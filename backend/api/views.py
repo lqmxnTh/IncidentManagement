@@ -76,9 +76,6 @@ class TeamDetailView(generics.RetrieveUpdateDestroyAPIView):
     
 class ProfileDetailViewUserId(APIView):
     def get(self, request, user_id):
-        # Retrieve the profile based on the user ID
         profile = get_object_or_404(Profile, user=user_id)
-        # Serialize the profile data
         serializer = ProfileSerializer(profile)
-        # Return the serialized data as a response
         return Response(serializer.data, status=status.HTTP_200_OK)

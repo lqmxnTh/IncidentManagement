@@ -714,7 +714,7 @@ const DetailIncident = () => {
       const response = await axios.post(
         `${baseURL}/api/incident/predict/`,
         {
-          text: incident.description,
+          description: incident.description,
         },
         {
           headers: {
@@ -723,61 +723,83 @@ const DetailIncident = () => {
         }
       );
 
-      setPrediction(response.data.prediction);
-      if (prediction) {
-        const category = incidentTypes.find(
-          (category) => category.name === prediction[0]
-        );
-        if (
-          prediction[0] === "Facility and Maintenance Issues" ||
-          prediction[0] === "Transportation and Parking"
-        ) {
-          setIncident((prevIncident) => ({
-            ...prevIncident,
-            teams: [1],
-          }));
-        }
-        if (
-          prediction[0] === "Academic and Student Affairs" ||
-          prediction[0] === "Administrative and Operational Issues"
-        ) {
-          setIncident((prevIncident) => ({
-            ...prevIncident,
-            teams: [5],
-          }));
-        }
-        if (
-          prediction[0] === "Security Incidents" ||
-          prediction[0] === "Health and Safety"
-        ) {
-          setIncident((prevIncident) => ({
-            ...prevIncident,
-            teams: [2],
-          }));
-        }
-        if (prediction[0] === "IT and Network Issues") {
-          setIncident((prevIncident) => ({
-            ...prevIncident,
-            teams: [3],
-          }));
-        }
-        console.log(category.id);
+      setPrediction(response.data.predicted_category);
+      console.log(prediction);
+      const category = incidentTypes.find(
+        (category) => category.name === prediction
+      );
+      console.log(category);
+      if (prediction === "Security") {
+        setIncident((prevIncident) => ({
+          ...prevIncident,
+          teams: [2],
+        }));
+      }
+
+      // if (prediction) {
+      //   const category = incidentTypes.find(
+      //     (category) => category.name === prediction[0]
+      //   );
+      //   if (
+      //     prediction[0] === "Facility and Maintenance Issues" ||
+      //     prediction[0] === "Transportation and Parking"
+      //   ) {
+      //     setIncident((prevIncident) => ({
+      //       ...prevIncident,
+      //       teams: [1],
+      //     }));
+      //   }
+      //   if (
+      //     prediction[0] === "Academic and Student Affairs" ||
+      //     prediction[0] === "Administrative and Operational Issues"
+      //   ) {
+      //     setIncident((prevIncident) => ({
+      //       ...prevIncident,
+      //       teams: [5],
+      //     }));
+      //   }
+      //   if (
+      //     prediction[0] === "Security Incidents" ||
+      //     prediction[0] === "Health and Safety"
+      //   ) {
+      //     setIncident((prevIncident) => ({
+      //       ...prevIncident,
+      //       teams: [2],
+      //     }));
+      //   }
+      //   if (prediction[0] === "IT and Network Issues") {
+      //     setIncident((prevIncident) => ({
+      //       ...prevIncident,
+      //       teams: [3],
+      //     }));
+      //   }
+      //   console.log(category.id);
+      if (category) {
         setIncident((prevIncident) => ({
           ...prevIncident,
           incident_type: [category.id],
         }));
       }
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        priority: "High",
+      }));
     } catch (err) {
       console.log(err.response ? err.response.data.error : err.message);
       setPrediction(null);
     } finally {
-      await handleAccept();
+      // await handleAccept();
       const randomIds = getRandomIds(profiles, 2);
       setIncident((prevIncident) => ({
         ...prevIncident,
         assigned_to: randomIds,
       }));
       setEmailLoading(false);
+      await updateItemStatus(baseURL, id, incident, "In Progress");
+      setIncident((prevIncident) => ({
+        ...prevIncident,
+        status: "In Progress",
+      }));
     }
   };
 
@@ -862,15 +884,11 @@ const DetailIncident = () => {
                   </Button>
                 </>
               )}
+              <Button onClick={handleResolve} variant="contained" color="info">
+                Resolve Incident
+              </Button>
               {incident?.status === "Assign" && (
                 <>
-                  <Button
-                    onClick={handleResolve}
-                    variant="contained"
-                    color="info"
-                  >
-                    Resolve Incident
-                  </Button>
                   {incident?.status !== "Escalated" && (
                     <Button
                       onClick={handleEscalate}

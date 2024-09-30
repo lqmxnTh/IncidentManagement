@@ -1,6 +1,6 @@
 from cv2 import FACE_RECOGNIZER_SF_FR_COSINE
 from rest_framework import serializers
-from .models import Incident, Resolution,EscalationHistory,IncidentType, Steps, Task, WorkFlow
+from .models import Incident, Notification, Resolution,EscalationHistory,IncidentType, Steps, Task, WorkFlow
 from api.models import *
 from location.models import *
 from django.contrib.auth.models import User
@@ -166,7 +166,6 @@ class IncidentSerializer(serializers.ModelSerializer):
             'longitude',
             'assigned_to',
             'accepted',
-            'worflow',
             ]
 
 class ResolutionSerializer(serializers.ModelSerializer):
@@ -184,6 +183,9 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = '__all__'
         
-
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
     
     

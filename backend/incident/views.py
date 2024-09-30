@@ -1,13 +1,14 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
+
 from .models import Incident, Resolution, EscalationHistory,IncidentType, Profile, Steps, Task, WorkFlow
 from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail
-from django.conf import settings
+from django.conf import Settings, settings
 from django.http import JsonResponse
 import smtplib
 from django.views.decorators.csrf import csrf_exempt
@@ -164,52 +165,83 @@ class SendAssignmentEmail(APIView):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
         
-        
-model = joblib.load(settings.MODEL)
+
+# model = joblib.load(settings.MODEL)
+
+# class PredictAPIView(APIView):
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
+#         # Load or initialize your vectorizer
+#         # For example, if you used a TfidfVectorizer during training, load it here
+#         self.vectorizer = self.load_vectorizer()
+
+#     def load_vectorizer(self):
+#         # Load the pre-trained vectorizer from a file or any other source
+#         # For example, if you saved the vectorizer using joblib or pickle:
+#         return joblib.load(settings.VECTORIZER)
+
+#     def post(self, request, *args, **kwargs):
+#         try:
+#             # Get the text from the request body
+#             data = json.loads(request.body)
+#             text = data.get('text')
+
+#             if not text:
+#                 return Response({'error': 'No text provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+#             # Preprocess the text to convert it into numeric format
+#             processed_text = self.preprocess_text(text)  # This should convert text to numeric format
+
+#             # Reshape if needed for the model
+#             reshaped_text = np.array([processed_text]).reshape(1, -1)
+
+#             # Make prediction
+#             prediction = model.predict(reshaped_text)
+
+#             return Response({'prediction': prediction.tolist()}, status=status.HTTP_200_OK)
+#         except Exception as e:
+#             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+#     def preprocess_text(self, text):
+#         # Convert the text to numeric format using the loaded vectorizer
+#         return self.vectorizer.transform([text]).toarray()[0]
+
+import xgboost as xgb
+import string
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+model = xgb.Booster()
+model.load_model(settings.MODEL)
+tfidf_vectorizer = joblib.load(settings.VECTORIZER)
+label_encoder = joblib.load(settings.LABELENCODER)
+
+import re
+
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', '', text)
+    tokens = text.split()
+    return ' '.join(tokens)
 
 class PredictAPIView(APIView):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # Load or initialize your vectorizer
-        # For example, if you used a TfidfVectorizer during training, load it here
-        self.vectorizer = self.load_vectorizer()
-
-    def load_vectorizer(self):
-        # Load the pre-trained vectorizer from a file or any other source
-        # For example, if you saved the vectorizer using joblib or pickle:
-        return joblib.load(settings.VECTORIZER)
-
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         try:
-            # Get the text from the request body
             data = json.loads(request.body)
-            text = data.get('text')
-
-            if not text:
-                return Response({'error': 'No text provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Preprocess the text to convert it into numeric format
-            processed_text = self.preprocess_text(text)  # This should convert text to numeric format
-
-            # Reshape if needed for the model
-            reshaped_text = np.array([processed_text]).reshape(1, -1)
-
-            # Make prediction
-            prediction = model.predict(reshaped_text)
-
-            return Response({'prediction': prediction.tolist()}, status=status.HTTP_200_OK)
+            description = data.get('description')
+            cleaned_description = preprocess_text(description)
+            description_tfidf = tfidf_vectorizer.transform([cleaned_description])
+            dmatrix = xgb.DMatrix(description_tfidf)
+            prediction = model.predict(dmatrix)
+            predicted_class_index = int(prediction[0])
+            predicted_category = label_encoder.inverse_transform([predicted_class_index])[0]
+            return JsonResponse({'predicted_category': predicted_category})
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    def preprocess_text(self, text):
-        # Convert the text to numeric format using the loaded vectorizer
-        return self.vectorizer.transform([text]).toarray()[0]
+            return JsonResponse({'error': str(e)}, status=400)
 
 class IncidentPerDayView(APIView):
-    # permission_classes = [IsAuthenticated]  # Optional: Adjust permissions as needed
-
     def get(self, request, *args, **kwargs):
-        # Annotate incidents grouped by date
         incidents_per_day = (
             Incident.objects.annotate(date=TruncDate('created_at'))
             .values('date')
@@ -267,3 +299,18 @@ class IncidentMetricsAPIView(APIView):
 
         # Return the data as a JSON response
         return Response(response_data, status=status.HTTP_200_OK)
+    
+class UnreadNotificationsView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+    
+    def get_queryset(self):
+        user = self.kwargs['user_id']
+        return Notification.objects.filter(user_id=user,read_status=False)
+
+class NotificationsCreateView(generics.ListCreateAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+
+class NotificationsDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer

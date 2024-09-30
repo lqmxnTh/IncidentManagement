@@ -28,5 +28,8 @@ urlpatterns = [
     path('update-steps/<int:pk>/', IndividualStepsView.as_view(), name='steps'),
     path('workflows/', WorkFlowListView.as_view(), name='workflow'),
     path('workflows/<int:pk>/', WorkFlowDetailView.as_view(), name='workflow-detail'),
+    path('notifications/unread/<int:user_id>/', UnreadNotificationsView.as_view(), name='unread-notification'),
+    path('notifications/', NotificationsCreateView.as_view(), name='notifications'),
+    path('notifications/<int:pk>/', NotificationsDetailView.as_view(), name='notifications-detail'),
     path('', include(router.urls)),
  ]

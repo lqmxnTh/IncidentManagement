@@ -96,7 +96,6 @@ const AddNewTaskDialogue = ({
             margin="normal"
             required
           />
-
           <FormControl required color="info" fullWidth margin="normal">
             <InputLabel>Task To</InputLabel>
             <Select

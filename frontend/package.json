@@ -41,6 +41,7 @@
     "react-pro-sidebar": "^0.7.1",
     "react-router-dom": "^6.23.1",
     "react-spinners": "^0.14.1",
+    "react-toggle-button": "^2.2.0",
     "yup": "^1.4.0"
   },
   "devDependencies": {
