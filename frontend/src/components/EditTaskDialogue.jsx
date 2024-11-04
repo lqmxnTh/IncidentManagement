@@ -23,10 +23,15 @@ const EditTaskDialogue = ({
 }) => {
   const baseURL = import.meta.env.VITE_API_URL;
   const [profiles, setProfile] = useState([]);
-
+  const token = localStorage.getItem("token");
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/profiles/`)
+      .get(`${baseURL}/api/profiles/`,
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        })
       .then((response) => setProfile(response.data))
       .catch((error) => console.error("Error fetching profiles:", error));
   }, [baseURL]);
@@ -74,7 +79,7 @@ const EditTaskDialogue = ({
             onClick={handleSelectedTaskSubmit}
             color="secondary"
           >
-            Add Step
+            Edit Step
           </Button>
         </DialogActions>
       </DialogContent>

@@ -80,11 +80,17 @@ const Team = () => {
   const navigate = useNavigate();
   const [allMembers, setAllMembers] = useState([]);
   const [allDepartments, setAllDepartments] = useState([]);
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/teams/`);
+        const response = await axios.get(`${baseURL}/api/teams/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          });
         setTeams(response.data);
       } catch (error) {
         console.error("Failed to fetch teams:", error);
@@ -93,7 +99,12 @@ const Team = () => {
 
     const fetchMembers = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/profiles/`);
+        const response = await axios.get(`${baseURL}/api/profiles/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          });
         setAllMembers(response.data);
       } catch (error) {
         console.error("Failed to fetch members:", error);
@@ -102,7 +113,12 @@ const Team = () => {
 
     const fetchDepartments = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/departments/`);
+        const response = await axios.get(`${baseURL}/api/departments/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          });
         setAllDepartments(response.data);
       } catch (error) {
         console.error("Failed to fetch departments:", error);

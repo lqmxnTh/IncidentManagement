@@ -21,13 +21,18 @@ const DetailTeam = () => {
   const [team, setTeam] = useState(null);
   const [allMembers, setAllMembers] = useState([]);
   const [allDepartments, setAllDepartments] = useState([]);
-
+  const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTeam = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/teams/${id}/`);
+        const response = await axios.get(`${baseURL}/api/teams/${id}/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          });
         setTeam(response.data);
       } catch (error) {
         console.error("Failed to fetch team details:", error);
@@ -36,7 +41,12 @@ const DetailTeam = () => {
 
     const fetchMembers = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/profiles/`);
+        const response = await axios.get(`${baseURL}/api/profiles/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          });
         setAllMembers(response.data);
       } catch (error) {
         console.error("Failed to fetch members:", error);
@@ -45,7 +55,12 @@ const DetailTeam = () => {
 
     const fetchDepartments = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/departments/`);
+        const response = await axios.get(`${baseURL}/api/departments/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          });
         setAllDepartments(response.data);
       } catch (error) {
         console.error("Failed to fetch departments:", error);
@@ -81,7 +96,12 @@ const DetailTeam = () => {
 
   const handleSave = async () => {
     try {
-      await axios.put(`${baseURL}/api/teams/${id}/`, team);
+      await axios.put(`${baseURL}/api/teams/${id}/`, team,
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
       navigate("/team");
     } catch (error) {
       console.error("Failed to update team:", error);
@@ -90,7 +110,12 @@ const DetailTeam = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`${baseURL}/api/teams/${id}`);
+      await axios.delete(`${baseURL}/api/teams/${id}`,
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
       navigate("/team");
       console.log("Team deleted successfully");
     } catch (error) {

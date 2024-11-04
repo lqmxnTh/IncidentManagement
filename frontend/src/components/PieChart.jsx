@@ -5,6 +5,7 @@ import { Box } from "@mui/material";
 
 const IncidentMetricsCharts = () => {
   const baseURL = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem("token");
   const [priorityData, setPriorityData] = useState({
     labels: [],
     datasets: [
@@ -32,7 +33,10 @@ const IncidentMetricsCharts = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/incident-metrics/`);
+        const response = await axios.get(`${baseURL}/api/incident-metrics/`,{
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          }});
         const { priority_counts, status_counts } = response.data;
 
         const priorityLabels = Object.keys(priority_counts || {});

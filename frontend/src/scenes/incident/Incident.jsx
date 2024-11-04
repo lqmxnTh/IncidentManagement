@@ -6,6 +6,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
 import { useCookies } from "react-cookie";
+import SearchBox from "../../components/SearchBox";
 
 const Incident = () => {
   const baseURL = import.meta.env.VITE_API_URL;
@@ -16,12 +17,40 @@ const Incident = () => {
   const [cookies, setCookie, removeCookie] = useCookies(["user"]);
   const [profile, setProfile] = useState([]);
   const user = cookies?.user;
+  const [filteredIncidents, setFilteredIncidents] = useState(incidents);
+  const token = localStorage.getItem("token");
+  // Search function that will be passed to the SearchBox
+  const searchFunction = (data, parameter, value) => {
+    const results = data.filter(incident => {
+      const incidentValue = incident[parameter];
+  
+      // Check if the parameter's value is a string
+      if (typeof incidentValue === 'string') {
+        return incidentValue.toLowerCase().includes(value.toLowerCase());
+      } 
+      
+      // Check if the parameter's value is a number/float
+      if (typeof incidentValue === 'number') {
+        return incidentValue.toString().includes(value); // Convert to string for comparison
+      }
+  
+      return false; // Return false for any other types
+    });
+  
+    setFilteredIncidents(results); // Update the filtered incidents state
+    return results; // You could also return this if needed for further use
+  };
+  
 
   useEffect(() => {
     const fetchIncidents = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/view-only-incidents/`);
+        const response = await axios.get(`${baseURL}/api/view-only-incidents/`,{
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          }});
         setIncidents(response.data);
+        setFilteredIncidents(response.data)
       } catch (error) {
         console.error("Failed to fetch incidents:", error);
       }
@@ -32,7 +61,10 @@ const Incident = () => {
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/profiles/user/${user?.id}`)
+      .get(`${baseURL}/api/profiles/user/${user?.id}`,{
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        }})
       .then((response) => setProfile(response.data))
       .catch((error) => console.error("Error fetching profiles", error));
   }, [baseURL]);
@@ -93,6 +125,7 @@ const Incident = () => {
   return (
     <Box m="20px">
       <Header title="INCIDENTS" subtitle="Managing the Incidents" />
+      <SearchBox data={incidents} searchFunction={searchFunction} defauultCateg={"title"} />
       <Box
         m="40px 0 0 0"
         height="100vh"
@@ -122,7 +155,7 @@ const Incident = () => {
           },
         }}
       >
-        <DataGrid autoPageSize className="cursor-pointer" rows={incidents} columns={columns} onRowClick={handleRowClick} />
+        <DataGrid autoPageSize className="cursor-pointer" rows={filteredIncidents} columns={columns} onRowClick={handleRowClick} />
       </Box>
     </Box>
   );

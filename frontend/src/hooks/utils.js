@@ -10,7 +10,7 @@ const makeRequest = async (method, endpoint, data = null) => {
       method,
       baseURL,
       url: endpoint,
-      data,
+      data
     });
 
     return response.data;
@@ -42,7 +42,12 @@ export const updateItemStatus = async (baseURL, id, item, newStatus) => {
 
   // Make the API call to update the item on the server
   try {
-    await axios.put(`${baseURL}/api/incidents/${id}/`, updatedItem);
+    const token = localStorage.getItem("token");
+    await axios.put(`${baseURL}/api/incidents/${id}/`, updatedItem, {
+      headers: {
+        Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+      },
+    });
     console.log("Item updated successfully");
   } catch (error) {
     console.error("Failed to update item:", error);
@@ -98,3 +103,15 @@ export const LoginUserData = () => {
 
   return user;
 };
+
+export const api = axios.create({
+  baseURL: baseURL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Token ${token}`;
+  }
+  return config;
+});

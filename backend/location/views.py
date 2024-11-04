@@ -1,13 +1,16 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from .models import Faculty, Building, Classroom
 from .serializers import FacultySerializer, BuildingSerializer, ClassroomSerializer
 
 class FacultyViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [AllowAny]
     queryset = Faculty.objects.all()
     serializer_class = FacultySerializer
 
 class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [AllowAny]
     queryset = Building.objects.all()
     serializer_class = BuildingSerializer
 
@@ -21,6 +24,7 @@ class BuildingViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 class ClassroomViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [AllowAny]
     queryset = Classroom.objects.all()
     serializer_class = ClassroomSerializer
 

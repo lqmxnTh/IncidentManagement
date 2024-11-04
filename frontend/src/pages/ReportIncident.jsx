@@ -1,20 +1,20 @@
+import React, { useState, useEffect } from "react";
 import {
   Card,
-  Input,
-  Select,
-  Option,
-  Button,
+  CardContent,
   Typography,
-  Textarea,
-} from "@material-tailwind/react";
-import React, { useState, useEffect } from "react";
+  TextField,
+  Button,
+  MenuItem,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCookies } from "react-cookie";
+import makeRequest from "../hooks/utils";
 
 export function ReportIncident() {
   const baseURL = import.meta.env.VITE_API_URL;
-  const [cookies, setCookie, removeCookie] = useCookies(["user"]);
+  const [cookies] = useCookies(["user"]);
   const user = cookies.user;
 
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export function ReportIncident() {
   const [floors, setFloors] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
-  
+
   const getUserLocation = (callback) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -33,29 +33,29 @@ export function ReportIncident() {
           callback({ latitude, longitude });
         },
         (error) => {
-          console.error('Error getting user location:', error);
+          console.error("Error getting user location:", error);
           callback(null);
         }
       );
     } else {
-      console.error('Geolocation is not supported by this browser.');
+      console.error("Geolocation is not supported by this browser.");
       callback(null);
     }
   };
 
   const [formData, setFormData] = useState({
-    "user": user?.id,
-    "title": "",
-    "description": "",
-    "floor": null,
-    "faculty": null,
-    "building": null,
-    "classroom": null,
-    "status": "Open",
-    "team": [],
-    "email": "",
-    "latitude": null,
-    "longitude": null,
+    user: user?.id,
+    title: "",
+    description: "",
+    floor: null,
+    faculty: "",
+    building: "",
+    classroom: "",
+    status: "Open",
+    team: [],
+    email: "",
+    latitude: null,
+    longitude: null,
   });
 
   useEffect(() => {
@@ -111,15 +111,6 @@ export function ReportIncident() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSelectChange = (name, value) => {
-    const parsedValue = isNaN(value) ? value : parseInt(value, 10);
-    setFormData({ ...formData, [name]: parsedValue });
-  };
-
-  useEffect(() => {
-    console.log("Form data:", formData);
-  }, [formData]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     getUserLocation(async (location) => {
@@ -128,7 +119,10 @@ export function ReportIncident() {
         formData.longitude = location.longitude;
       }
       try {
-        const response = await axios.post(`${baseURL}/api/incidents/`, formData);
+        const response = await axios.post(
+          `${baseURL}/api/incidents/`,
+          formData
+        );
         console.log(response.data);
         navigate("/");
       } catch (error) {
@@ -136,147 +130,146 @@ export function ReportIncident() {
         alert(error.response.data);
       }
     });
+    try {
+      await axios.post(
+        `${baseURL}/api/notifications/`,
+        {
+          user: 2,
+          message: `Incident with title ${formData.title} and description ${formData.description} has been logged by user ${formData?.user}`,
+          read_status: false,
+        }
+      );
+    } catch {}
   };
 
   return (
     <div className="flex justify-center items-center mt-6 mb-8">
-      <Card className="p-5" color="white" shadow={true}>
-        <Typography variant="h4" color="blue-gray">
-          Report An Incident
-        </Typography>
-        <Typography color="gray" className="mt-1 font-normal">
-          Please fill the form below to log an incident!
-        </Typography>
-        <form
-          className="mt-8 mb-2 w-80 max-w-screen-lg sm:w-96"
-          onSubmit={handleSubmit}
-        >
-          <div className="mb-4 flex flex-col gap-6">
-            <Typography variant="h6" color="blue-gray" className="-mb-3">
-              Title
-            </Typography>
-            <Input
-              required
+      <Card sx={{ maxWidth: 500, p: 3 }}>
+        <CardContent>
+          <Typography variant="h4" color="primary" gutterBottom>
+            Report An Incident
+          </Typography>
+          <Typography color="textSecondary" gutterBottom>
+            Please fill the form below to log an incident!
+          </Typography>
+          <form onSubmit={handleSubmit}>
+            <TextField
+              label="Title"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              size="lg"
-              placeholder="Broken Fan"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              labelProps={{
-                className: "before:content-none after:content-none",
-              }}
-            />
-            <Typography variant="h6" color="blue-gray" className="-mb-3">
-              Description
-            </Typography>
-            <Textarea
+              fullWidth
+              margin="normal"
               required
+            />
+            <TextField
+              label="Description"
               name="description"
               value={formData.description}
               onChange={handleChange}
-              size="lg"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              labelProps={{
-                className: "before:content-none after:content-none",
-              }}
-            />
-            <Typography variant="h6" color="blue-gray" className="-mb-3">
-              Faculty
-            </Typography>
-            <Select
+              fullWidth
+              margin="normal"
               required
+              multiline
+              rows={4}
+            />
+            <TextField
+              select
+              label="Faculty"
               name="faculty"
               value={formData.faculty}
-              onChange={(value) => handleSelectChange("faculty", value)}
-              size="lg"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
               disabled={!faculties.length}
             >
               {faculties.length ? (
                 faculties.map((faculty) => (
-                  <Option key={faculty.id} value={String(faculty.id)}>
+                  <MenuItem key={faculty.id} value={faculty.id}>
                     {faculty.name}
-                  </Option>
+                  </MenuItem>
                 ))
               ) : (
-                <Option disabled>Loading faculties...</Option>
+                <MenuItem disabled>Loading faculties...</MenuItem>
               )}
-            </Select>
-            <Typography variant="h6" color="blue-gray" className="-mb-3">
-              Building
-            </Typography>
-            <Select
-              required
+            </TextField>
+            <TextField
+              select
+              label="Building"
               name="building"
               value={formData.building}
-              onChange={(value) => handleSelectChange("building", value)}
-              size="lg"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
               disabled={!buildings.length}
             >
               {buildings.length ? (
                 buildings.map((building) => (
-                  <Option key={String(building.id)} value={String(building.id)}>
+                  <MenuItem key={building.id} value={building.id}>
                     {building.name}
-                  </Option>
+                  </MenuItem>
                 ))
               ) : (
-                <Option disabled>Select a faculty to load buildings...</Option>
+                <MenuItem disabled>
+                  Select a faculty to load buildings...
+                </MenuItem>
               )}
-            </Select>
-            <Typography variant="h6" color="blue-gray" className="-mb-3">
-              Floor
-            </Typography>
-            <Select
-              required
+            </TextField>
+            <TextField
+              select
+              label="Floor"
               name="floor"
               value={formData.floor}
-              onChange={(value) => handleSelectChange("floor", value)}
-              size="lg"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
               disabled={!floors.length}
             >
               {floors.length ? (
                 floors.map((floor) => (
-                  <Option key={String(floor)} value={String(floor)}>
+                  <MenuItem key={floor} value={floor}>
                     {`Floor ${floor}`}
-                  </Option>
+                  </MenuItem>
                 ))
               ) : (
-                <Option disabled>Select a building to load floors...</Option>
+                <MenuItem disabled>
+                  Select a building to load floors...
+                </MenuItem>
               )}
-            </Select>
-            <Typography variant="h6" color="blue-gray" className="-mb-3">
-              Classroom
-            </Typography>
-            <Select
-              required
+            </TextField>
+            <TextField
+              select
+              label="Classroom"
               name="classroom"
               value={formData.classroom}
-              onChange={(value) => handleSelectChange("classroom", value)}
-              size="lg"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
               disabled={!classrooms.length}
             >
               {classrooms.length ? (
                 classrooms.map((classroom) => (
-                  <Option
-                    key={String(classroom.id)}
-                    value={String(classroom.id)}
-                  >
+                  <MenuItem key={classroom.id} value={classroom.id}>
                     {classroom.number}
-                  </Option>
+                  </MenuItem>
                 ))
               ) : (
-                <Option disabled>Select a floor to load classrooms...</Option>
+                <MenuItem disabled>
+                  Select a floor to load classrooms...
+                </MenuItem>
               )}
-            </Select>
-          </div>
-          <Button className="mt-6" fullWidth type="submit">
-            Create Incident
-          </Button>
-        </form>
+            </TextField>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ mt: 3 }}
+            >
+              Create Incident
+            </Button>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );

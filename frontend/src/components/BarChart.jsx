@@ -5,12 +5,15 @@ import { Bar } from "react-chartjs-2"; // Example using Chart.js
 const IncidentTypeCountsChart = () => {
   const [data, setData] = useState({});
   const baseURL = import.meta.env.VITE_API_URL;
-
+  const token = localStorage.getItem("token");
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(
-          `${baseURL}/api/incident-type-counts/`
+          `${baseURL}/api/incident-type-counts/`,{
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            }}
         );
         setData(response.data);
       } catch (error) {

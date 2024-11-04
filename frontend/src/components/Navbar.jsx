@@ -17,7 +17,7 @@ import {
   UserIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import NavListMenu from "./NavListMenu"; // import the new NavListMenu component
 import axios from "axios";
@@ -34,27 +34,36 @@ export function NavbarDefault() {
   const [notifications, setNotifications] = useState([]);
   const [isPopupOpen, setPopupOpen] = useState(false);
   const [refreshNotif, setRefreshNotif] = useState(false);
-
+  const navigate = useNavigate();
   const togglePopup = () => setPopupOpen(!isPopupOpen);
 
   const handleLogout = async () => {
     removeCookie("user");
     removeCookie("token");
     localStorage.clear();
+    navigate("/profiles");
   };
 
   const [openNav, setOpenNav] = React.useState(false);
-
+  const token = localStorage.getItem("token");
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/profiles/user/${user?.id}`)
+      .get(`${baseURL}/api/profiles/user/${user?.id}`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setProfile(response.data))
       .catch((error) => console.error("Error fetching profiles", error));
   }, [baseURL, user]);
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/notifications/unread/${user?.id}`)
+      .get(`${baseURL}/api/notifications/unread/${user?.id}`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then(
         (response) => setNotifications(response.data),
         console.log(notifications)
@@ -73,17 +82,38 @@ export function NavbarDefault() {
     );
   }, []);
 
-  const setAvailabilityToFalse = () => {
-    makeRequest("PUT", `/api/profiles/${profile?.id}/`, {
-      is_available: !toggleValue,
-    });
+  const setAvailabilityToFalse = async () => {
+    await axios
+      .put(
+        `${baseURL}/api/profiles/${profile?.id}/`,
+        {
+          is_available: !toggleValue,
+        },
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        }
+      )
+      .catch((error) => console.error("Error fetching profiles", error));
+
     setToggleValue(!toggleValue);
   };
 
   const markAsRead = async (id) => {
-    await makeRequest("PUT", `api/notifications/${id}/`, {
-      read_status: true,
-    });
+    await axios
+      .put(
+        `${baseURL}/api/notifications/${id}/`,
+        {
+          read_status: true,
+        },
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        }
+      )
+      .catch((error) => console.error("Error fetching profiles", error));
     setRefreshNotif(!refreshNotif);
   };
 
@@ -187,7 +217,18 @@ export function NavbarDefault() {
     <Navbar className="mx-auto max-w-screen-xl px-4 py-2 lg:px-8 lg:py-4 mt-2">
       <div className="container mx-auto flex items-center justify-between text-blue-gray-900">
         <Typography className="mr-4 cursor-pointer py-1.5 font-medium">
-          <Link to="/">UOM Safe</Link>
+          <Link
+            to="/"
+            style={{
+              fontWeight: "bold",
+              backgroundColor: "black",
+              color: "white",
+              padding: "5px",
+              borderRadius: "5px",
+            }}
+          >
+            UOM Safe
+          </Link>
         </Typography>
         {user && profile?.role > 0 && (
           <Typography
@@ -208,78 +249,79 @@ export function NavbarDefault() {
         )}
 
         <div className="hidden lg:block">{navList}</div>
+        <div className="hidden lg:block">
+          {user && (
+            <>
+              <div className="relative">
+                <Button
+                  className="p-1 m-0 bg-transparent text-inherit border-none shadow-none relative"
+                  onClick={togglePopup}
+                >
+                  <div className="relative inline-block">
+                    <BellAlertIcon className="h-6 w-6 cursor-pointer" />
+                    {/* Notification Badge */}
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center h-4 w-4 rounded-full text-xs font-bold text-white bg-red-600 transform translate-x-1/4 -translate-y-1/4">
+                      {notifications.length}
+                    </span>
+                  </div>
+                </Button>
 
-        {user && (
-          <>
-            <div className="relative">
-              <Button
-                className="p-1 m-0 bg-transparent text-inherit border-none shadow-none relative"
-                onClick={togglePopup}
-              >
-                <div className="relative inline-block">
-                  <BellAlertIcon className="h-6 w-6 cursor-pointer" />
-                  {/* Notification Badge */}
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center h-4 w-4 rounded-full text-xs font-bold text-white bg-red-600 transform translate-x-1/4 -translate-y-1/4">
-                    {notifications.length}
-                  </span>
-                </div>
-              </Button>
-
-              {/* Notification Popup */}
-              {isPopupOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 shadow-lg rounded-lg z-10">
-                  <ul className="p-2 space-y-2">
-                    {notifications.length > 0 ? (
-                      notifications.map((notification) => (
-                        <li
-                          key={notification.id}
-                          className="flex justify-between items-start p-2 hover:bg-gray-100 rounded-lg"
-                        >
-                          <div>
-                            {/* Notification message and link */}
-                            {notification.link_path ? (
-                              <a
-                                href={notification.link_path}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline"
-                              >
-                                {notification.message}
-                              </a>
-                            ) : (
-                              <p className="text-sm text-gray-700">
-                                {notification.message}
-                              </p>
-                            )}
-
-                            {/* Timestamp */}
-                            <span className="text-xs text-gray-400 block">
-                              {new Date(
-                                notification.timestamp
-                              ).toLocaleTimeString()}
-                            </span>
-                          </div>
-
-                          {/* Mark as Read Button */}
-                          <Button
-                            onClick={() => markAsRead(notification.id)}
-                            className="ml-2 text-[10px] text-white p-2"
+                {/* Notification Popup */}
+                {isPopupOpen && (
+                  <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 shadow-lg rounded-lg z-10">
+                    <ul className="p-2 space-y-2">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <li
+                            key={notification.id}
+                            className="flex justify-between items-start p-2 hover:bg-gray-100 rounded-lg"
                           >
-                            Mark as Read
-                          </Button>
+                            <div>
+                              {/* Notification message and link */}
+                              {notification.link_path ? (
+                                <a
+                                  href={notification.link_path}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:underline"
+                                >
+                                  {notification.message}
+                                </a>
+                              ) : (
+                                <p className="text-sm text-gray-700">
+                                  {notification.message}
+                                </p>
+                              )}
+
+                              {/* Timestamp */}
+                              <span className="text-xs text-gray-400 block">
+                                {new Date(
+                                  notification.timestamp
+                                ).toLocaleTimeString()}
+                              </span>
+                            </div>
+
+                            {/* Mark as Read Button */}
+                            <Button
+                              onClick={() => markAsRead(notification.id)}
+                              className="ml-2 text-[10px] text-white p-2"
+                            >
+                              Mark as Read
+                            </Button>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-gray-500">
+                          No notifications
                         </li>
-                      ))
-                    ) : (
-                      <li className="text-sm text-gray-500">
-                        No notifications
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="flex items-center gap-x-1">
           {user ? (
@@ -339,24 +381,75 @@ export function NavbarDefault() {
               <span className="ml-2 font-bold">{user?.first_name}</span>
             </span>
           </div>
-          <div className="flex items-center justify-between  border-y-2 pt-2 pb-4 mt-3">
-            <Button
-              onClick={togglePopup}
-              className="p-1 m-0 bg-transparent text-inherit border-none shadow-none relative flex justify-between w-full"
-            >
-              <span
-                variant="text"
-                size="sm"
-                className="text-black flex items-center justify-start"
+          <div className="flex items-center justify-between flex-col">
+            <div className="flex items-center justify-between w-full">
+              <Button
+                onClick={togglePopup}
+                className="p-1 m-0 bg-transparent text-inherit border-none shadow-none relative flex justify-between w-full"
               >
-                <BellAlertIcon className="h-6 w-6 cursor-pointer text-black" />
-                <span className="ml-2 font-bold">Notification</span>
-              </span>
+                <span
+                  variant="text"
+                  size="sm"
+                  className="text-black flex items-center justify-start"
+                >
+                  <BellAlertIcon className="h-6 w-6 cursor-pointer text-black" />
+                  <span className="ml-2 font-bold">Notification</span>
+                </span>
 
-              <div className="p-1 bg-blue-gray-200 rounded-md">
-                <span className="text-black m-1">{notifications.length}</span>
-              </div>
-            </Button>
+                <div className="p-1 bg-blue-gray-200 rounded-md">
+                  <span className="text-black m-1">{notifications.length}</span>
+                </div>
+              </Button>
+            </div>
+            <div>
+              {isPopupOpen && (
+                <ul className="p-2 space-y-2">
+                  {notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                      <li
+                        key={notification.id}
+                        className="flex justify-between items-start p-2 hover:bg-gray-100 rounded-lg"
+                      >
+                        <div>
+                          {/* Notification message and link */}
+                          {notification.link_path ? (
+                            <a
+                              href={notification.link_path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline"
+                            >
+                              {notification.message}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-gray-700">
+                              {notification.message}
+                            </p>
+                          )}
+
+                          {/* Timestamp */}
+                          <span className="text-xs text-gray-400 block">
+                            {new Date(
+                              notification.timestamp
+                            ).toLocaleTimeString()}
+                          </span>
+                        </div>
+
+                        {/* Mark as Read Button */}
+                        <Button
+                          onClick={() => markAsRead(notification.id)}
+                          className="ml-2 text-[10px] text-white p-2"
+                        >
+                          Mark as Read
+                        </Button>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-sm text-gray-500">No notifications</li>
+                  )}
+                </ul>
+              )}
+            </div>
           </div>
           {navListMob}
           <div className="flex items-center gap-x-1">

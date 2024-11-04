@@ -9,29 +9,65 @@ import {
   TableRow,
   Paper,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import makeRequest from "../hooks/utils";
 import { useParams } from "react-router-dom";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
+import axios from "axios";
 
-function StepTable({ steps }) {
+function StepTable({ steps, refresh }) {
   const { id } = useParams();
   const [reorderedSteps, setReorderedSteps] = useState(steps);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedStep, setSelectedStep] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editAttendees, setEditAttendees] = useState("");
+  const token = localStorage.getItem("token");
+  const baseURL = import.meta.env.VITE_API_URL;
+  const [editAttendeeId, setEditAttendeeId] = useState("");
+  const [profiles, setProfiles] = useState([]);
 
-  // Update reorderedSteps when steps prop changes
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/profiles/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
+        setProfiles(response.data);
+      } catch (error) {
+        console.error("Failed to fetch team details:", error);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
   useEffect(() => {
     setReorderedSteps(steps);
   }, [steps]);
 
   function SaveStepsOrder(arr) {
     try {
-      arr.forEach((element, index) => {
-        let formatData = {
-          step: index + 1,
-        };
-        makeRequest("PUT", `/api/update-steps/${element.id}/`, formatData);
-        console.log("Done For", element.name);
+      arr.forEach(async (element, index) => {
+        let formatData = { step: index + 1 };
+        await axios.put(
+          `${baseURL}/api/update-steps/${element.id}/`,
+          formatData,
+          {
+            headers: { Authorization: `Token ${token}` },
+          }
+        );
+        console.log("Order saved for", element.name);
       });
     } catch {
     } finally {
@@ -47,12 +83,49 @@ function StepTable({ steps }) {
     setEmailLoading(true);
   };
 
-  const handleEdit = () =>{
+  const handleEditClick = (step) => {
+    setSelectedStep(step);
+    setEditName(step.name);
+    setEditAttendeeId(step.attendees?.id || "");  // Use the attendee's ID here
+    setEditOpen(true);
+  };
 
-  }
-  const handleDelete = () =>{
+  const handleEditSave = async () => {
+    try {
+      setEmailLoading(true);
+      const updatedData = { name: editName, attendees: editAttendeeId }; // Send attendee ID as expected by the API
+      await axios.put(
+        `${baseURL}/api/update-steps/${selectedStep.id}/`,
+        updatedData,
+        {
+          headers: { Authorization: `Token ${token}` },
+        }
+      );
+      const updatedSteps = reorderedSteps.map((step) =>
+        step.id === selectedStep.id ? { ...step, ...updatedData } : step
+      );
+      setReorderedSteps(updatedSteps);
+    } catch (error) {
+      console.error("Error updating step:", error);
+    } finally {
+      setEditOpen(false);
+      refresh()
+      setEmailLoading(false);
+    }
+  };
 
-  }
+  const handleDelete = async (stepId) => {
+    if (window.confirm("Are you sure you want to delete this step?")) {
+      try {
+        await axios.delete(`${baseURL}/api/steps/${stepId}/`, {
+          headers: { Authorization: `Token ${token}` },
+        });
+        setReorderedSteps(reorderedSteps.filter((step) => step.id !== stepId));
+      } catch (error) {
+        console.error("Error deleting step:", error);
+      }
+    }
+  };
 
   return (
     <>
@@ -64,6 +137,7 @@ function StepTable({ steps }) {
           </div>
         </div>
       )}
+
       <Reorder.Group axis="y" values={reorderedSteps} onReorder={handleReorder}>
         <TableContainer component={Paper}>
           <Table aria-label="steps table">
@@ -85,8 +159,8 @@ function StepTable({ steps }) {
                   <TableCell>{step.attendees?.user_name}</TableCell>
                   <TableCell>{step.category?.name || "No Category"}</TableCell>
                   <TableCell align="center">
-                    <Button onClick={()=>{console.log(step.id)}}>
-                      <div className="flex items-center justify-center rounded-lg !bg-blue-gray-50 p-1 ">
+                    <Button onClick={() => handleEditClick(step)}>
+                      <div className="flex items-center justify-center rounded-lg !bg-blue-gray-50 p-1">
                         {React.createElement(PencilSquareIcon, {
                           strokeWidth: 2,
                           className: "h-6 text-gray-900 w-6",
@@ -95,7 +169,7 @@ function StepTable({ steps }) {
                     </Button>
                   </TableCell>
                   <TableCell align="center">
-                    <Button onClick={()=>{console.log(step.id)}}>
+                    <Button onClick={() => handleDelete(step.id)}>
                       <div className="flex items-center justify-center rounded-lg bg-red-400 p-1">
                         {React.createElement(TrashIcon, {
                           strokeWidth: 2,
@@ -110,6 +184,43 @@ function StepTable({ steps }) {
           </Table>
         </TableContainer>
       </Reorder.Group>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)}>
+        <DialogTitle>Edit Step</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Name"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+          <Select
+            fullWidth
+            value={editAttendeeId}
+            onChange={(e) => setEditAttendeeId(e.target.value)}
+            displayEmpty
+          >
+            <MenuItem value="" disabled>
+              Select Attendee
+            </MenuItem>
+            {profiles.map((profile) => (
+              <MenuItem key={profile.id} value={profile.id}>
+                {profile.user_name}
+              </MenuItem>
+            ))}
+          </Select>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={handleEditSave} color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

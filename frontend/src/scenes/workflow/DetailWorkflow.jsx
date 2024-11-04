@@ -25,6 +25,7 @@ import { useParams } from "react-router-dom";
 import makeRequest, { handleInputChange } from "../../hooks/utils";
 import StepTable from "../../components/StepTable";
 import { TabPanel } from "../../components/TabPanel";
+import axios from "axios";
 
 function DetailWorkflow() {
   const { id } = useParams();
@@ -45,6 +46,8 @@ function DetailWorkflow() {
   });
   const [filteredSteps, setFilteredSteps] = useState([]);
 
+  const baseURL = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem("token");
   const handleStepChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -61,32 +64,42 @@ function DetailWorkflow() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    handleClose(); // Close the dialog on successful submission
+    try {
+      await axios.post(`${baseURL}/api/workflow/${id}/add_step/`, formData, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
+      setRefreshSteps((prev) => !prev);
+    } catch (error) {
+      console.error("Failed to fetch team details:", error);
+    } finally {
+      handleClose();
+    }
   };
 
   const handleClickOpen = () => {
     setOpen(true);
   };
-
-  const handleClose = async () => {
-    try {
-      await makeRequest("POST", `api/workflow/${id}/add_step/`, formData);
-      setRefreshSteps((prev) => !prev);
-      // Toggle the state to refresh the steps
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setOpen(false);
-    }
+  const handleClose = () => {
+    setOpen(false);
   };
 
   useEffect(() => {
-    async function fetchWorkflow() {
-      const response = await makeRequest("GET", `api/workflows/${id}`);
-      setWorkflow(response);
-    }
+    const fetchWorkflow = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/workflows/${id}`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
+        setWorkflow(response.data);
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
+      }
+    };
 
     fetchWorkflow();
   }, [id, refreshSteps]);
@@ -112,28 +125,52 @@ function DetailWorkflow() {
     }
   }, [steps, workflow]);
   useEffect(() => {
-    async function fetchProfiles() {
-      const response = await makeRequest("GET", `/api/profiles/`);
-      setProfiles(response);
-    }
+    const fetchProfiles = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/profiles/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
+        setProfiles(response.data);
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
+      }
+    };
     fetchProfiles();
   }, [id]);
 
   // Fetch steps whenever refreshSteps changes
   useEffect(() => {
-    async function fetchSteps() {
-      const response = await makeRequest("GET", `api/view-only-steps/`);
-      setSteps(response);
-    }
+    const fetchSteps = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/view-only-steps/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
+        setSteps(response.data);
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
+      }
+    };
 
     fetchSteps();
   }, [id, refreshSteps]); // Add refreshSteps as a dependency
 
   useEffect(() => {
-    async function fetchCategory() {
-      const response = await makeRequest("GET", `api/incident-types/`);
-      setCategory(response);
-    }
+    const fetchCategory = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/incident-types/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
+        setCategory(response.data);
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
+      }
+    };
 
     fetchCategory();
   }, [id]);
@@ -161,7 +198,11 @@ function DetailWorkflow() {
 
   const handleSave = async () => {
     try {
-      await makeRequest("PUT", `api/workflows/${id}/`, workflow);
+      await axios.put(`${baseURL}/api/workflows/${id}/`, workflow, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
     } catch (error) {
       console.error("Failed to update incident:", error);
     } finally {
@@ -171,6 +212,9 @@ function DetailWorkflow() {
   const handleEdit = () => {
     setIsEditable(true);
   };
+  const refresh = () => {
+    setRefreshSteps((prev) => !prev);
+  };
 
   return (
     <Box m="20px">
@@ -178,31 +222,7 @@ function DetailWorkflow() {
         title="Workflow DETAIL"
         subtitle={`Detailed view of workflow ${workflow.name}`}
       />
-      {isEditable && (
-        <Button
-          onClick={() => handleSave()}
-          variant="contained"
-          color="secondary"
-        >
-          Save
-        </Button>
-      )}
-      {!isEditable && value === 0 && (
-        <Button
-          onClick={() => handleEdit()}
-          variant="contained"
-          color="secondary"
-        >
-          Edit
-        </Button>
-      )}
-
-      <Grid
-        marginTop={"30px"}
-        item
-        xs={12}
-        className="border-t border-gray-300"
-      >
+      <Grid item xs={12} className="border-t border-gray-300">
         <Tabs
           value={value}
           onChange={handleChange}
@@ -226,7 +246,25 @@ function DetailWorkflow() {
           <Tab sx={{ marginLeft: "15px" }} label="Steps" />
         </Tabs>
         <TabPanel value={value} index={0}>
-          <Grid container spacing={2}>
+          {isEditable && (
+            <Button
+              onClick={() => handleSave()}
+              variant="contained"
+              color="secondary"
+            >
+              Save
+            </Button>
+          )}
+          {!isEditable && value === 0 && (
+            <Button
+              onClick={() => handleEdit()}
+              variant="contained"
+              color="secondary"
+            >
+              Edit
+            </Button>
+          )}
+          <Grid sx={{ mt: "10px" }} container spacing={2}>
             <Grid item xs={6}>
               <TextField
                 color="info"
@@ -300,7 +338,7 @@ function DetailWorkflow() {
               Add Step
             </Button>
             <Box marginTop={"20px"}>
-              <StepTable steps={filteredSteps} />
+              <StepTable steps={filteredSteps} refresh={refresh} />
             </Box>
           </Box>
         </TabPanel>

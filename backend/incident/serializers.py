@@ -40,7 +40,12 @@ class StepsCreateSerializer(serializers.ModelSerializer):
         workflow.steps.add(step)
         
         return step
-            
+    
+class CreateWorkFlowSerialiser(serializers.ModelSerializer):
+    class Meta:
+        model = WorkFlow
+        fields = '__all__'
+        
 class WorkFlowSerializer(serializers.ModelSerializer):
     # steps = StepsSerializer(many=True, read_only=False)
     created_by = ProfileSerializer(read_only=True)
@@ -137,8 +142,44 @@ class AdvanceIncidentSerializer(serializers.ModelSerializer):
     def get_formatted_updated_at(self, obj):
         return obj.updated_at.strftime("%d/%m/%Y")
 
+class ViewOnlyIncidentSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    classroom_name = serializers.SerializerMethodField()
+    faculty_name = serializers.SerializerMethodField()
+    building_name = serializers.SerializerMethodField()
+    formatted_created_at = serializers.SerializerMethodField()
+    class Meta:
+        model = Incident
+        fields = [
+            'id', 
+            'user_name',
+            'classroom_name',
+            'faculty_name',
+            'building_name',
+            'floor',
+            'title', 
+            'description',
+            'formatted_created_at',
+            'status',
+            'priority',
+            'latitude',
+            'longitude',
+        ]
 
+    def get_user_name(self, obj):
+        return obj.user.username if obj.user else None
 
+    def get_classroom_name(self, obj):
+        return obj.classroom.number if obj.classroom else None
+
+    def get_faculty_name(self, obj):
+        return obj.faculty.name if obj.faculty else None
+
+    def get_building_name(self, obj):
+        return obj.building.name if obj.building else None
+
+    def get_formatted_created_at(self, obj):
+        return obj.created_at.strftime("%d/%m/%Y")
 
 
 
@@ -187,5 +228,6 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = '__all__'
+
     
     

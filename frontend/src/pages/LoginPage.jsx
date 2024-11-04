@@ -30,8 +30,8 @@ function LoginPage() {
       const { token, user } = response.data;
 
       setCookie("token", token, { path: "/" });
+      localStorage.setItem('token', token);
       setCookie("user", JSON.stringify(user), { path: "/" });
-
       navigate("/");
     } catch (error) {
       setError(error.response.data.detail);

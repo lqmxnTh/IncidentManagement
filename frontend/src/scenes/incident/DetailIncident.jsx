@@ -16,13 +16,20 @@ import {
   Tabs,
   Tab,
   Backdrop,
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
 import IncidentProgress from "../../components/IncidentProgress";
 import EscalateDialog from "../../components/EscalateDialog";
 import ResolveIncidentDialog from "../../components/ResolveIncidentDialog";
-import makeRequest, {
+import {
   handleInputChange,
   LoginUserData,
   updateItemStatus,
@@ -65,7 +72,8 @@ const DetailIncident = () => {
   const navigate = useNavigate();
   const [emailLoading, setEmailLoading] = useState(false);
   const [value, setValue] = React.useState(0);
-  const [prediction, setPrediction] = useState(null);
+  const [predictedCategory, setpredictedCategory] = useState(null);
+  const [predictedWorkflow, setPredictedWorkflow] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
   const [logUser, setLogUser] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -74,6 +82,21 @@ const DetailIncident = () => {
   const [isDialogEditTaskOpen, setDialogEditTaskOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState([]);
   const [escalations, setEscalation] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [refreshEscaltion, setRefreshEscaltion] = useState(false);
+  const [isForfeitDialogOpen, setIsForfeitDialogOpen] = useState(false);
+  const [forfeitReason, setForfeitReason] = useState("");
+  const [forfeitId, setForfeitId] = useState(0);
+
+  const isMobile = useMediaQuery("(max-width: 600px)");
+  const token = localStorage.getItem("token");
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -209,11 +232,47 @@ const DetailIncident = () => {
       field: "completed",
       headerName: "Completed",
       flex: 1,
+      renderCell: (params) => (
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() => handleToggleCompleted(params.row.id)}
+          style={{
+            color: params.value ? "green" : "green",
+            cursor:
+              params.row.completed || params.row.forfeited
+                ? "not-allowed"
+                : "pointer",
+            textTransform: "none",
+          }}
+          disabled={params.row.completed || params.row.forfeited}
+        >
+          {params.value ? "Completed" : "Mark as Complete"}
+        </Button>
+      ),
     },
     {
       field: "forfeited",
       headerName: "Forfeit",
       flex: 1,
+      renderCell: (params) => (
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={() => handleToggleForfeit(params.row.id)}
+          style={{
+            color: params.value ? "gray" : "red",
+            cursor:
+              params.row.completed || params.row.forfeited
+                ? "not-allowed"
+                : "pointer",
+            textTransform: "none",
+          }}
+          disabled={params.row.completed || params.row.forfeited}
+        >
+          {params.value ? "Forfeited" : "Mark as Forfeit"}
+        </Button>
+      ),
     },
     {
       field: "forfeited_reason",
@@ -221,16 +280,14 @@ const DetailIncident = () => {
       flex: 1,
     },
     {
-      field: "edit", // Add Edit column
+      field: "edit",
       headerName: "Edit",
       flex: 1,
       headerAlign: "center",
       align: "center",
       renderCell: (params) => (
         <Button
-          onClick={() => {
-            handleEditTask(params.row.id);
-          }}
+          onClick={() => handleEditTask(params.row.id)}
           style={{ color: "blue", cursor: "pointer" }}
         >
           <div className="flex items-center justify-center rounded-lg !bg-blue-gray-50 p-1 ">
@@ -243,16 +300,14 @@ const DetailIncident = () => {
       ),
     },
     {
-      field: "delete", // Add Delete column
+      field: "delete",
       headerName: "Delete",
       headerAlign: "center",
       align: "center",
       flex: 1,
       renderCell: (params) => (
         <Button
-          onClick={() => {
-            handleDeleteSelectedTask(params.row.id);
-          }}
+          onClick={() => handleDeleteSelectedTask(params.row.id)}
           style={{ color: "red", cursor: "pointer" }}
         >
           <div className="flex items-center justify-center rounded-lg bg-red-400 p-1">
@@ -266,13 +321,63 @@ const DetailIncident = () => {
     },
   ];
 
+  // Sample handlers for toggling completed and forfeit states
+  const handleToggleCompleted = async (id) => {
+    setEmailLoading(true);
+    await axios.put(
+      `${baseURL}/api/tasks/${id}/`,
+      {
+        completed: true,
+      },
+      {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      }
+    );
+    setRefreshTasks(!refreshTasks);
+    setEmailLoading(false);
+    handleResolve()
+  };
+
+  const handleToggleForfeit = (id) => {
+    setIsForfeitDialogOpen(true)
+    setForfeitId(id)
+
+  };
+  const handleSubmitForfeit = async (id) => {
+    await axios.put(
+      `${baseURL}/api/tasks/${forfeitId}/`,
+      {
+        forfeited: true,
+        forfeited_reason: forfeitReason
+      },
+      {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      }
+    );
+    setIsForfeitDialogOpen(false);
+    setRefreshTasks(!refreshTasks)
+  };
+  const handleCloseDialog = () => {
+    setIsForfeitDialogOpen(false);
+  };
+
   useEffect(() => {
     const fetchIncident = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/incidents/${id}/`);
+        const token = localStorage.getItem("token"); // Retrieve the token from local storage
+        const response = await axios.get(`${baseURL}/api/incidents/${id}/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
         setIncident(response.data);
       } catch (error) {
         console.error("Failed to fetch incident details:", error);
+        alert(error.response.data.detail);
       }
     };
 
@@ -280,23 +385,37 @@ const DetailIncident = () => {
   }, [id, baseURL]);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     axios
-      .get(`${baseURL}/api/profiles/user/${user?.id}`)
+      .get(`${baseURL}/api/profiles/user/${user?.id}`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setLogUser(response.data))
       .catch((error) => console.error("Error fetching profiles", error));
   }, [baseURL, user]);
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/escalations/incident/${id}/`)
+      .get(`${baseURL}/api/escalations/incident/${id}/`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setEscalation(response.data))
       .catch((error) => console.error("Error fetching escalations", error));
-  }, [baseURL, user]);
+  }, [baseURL, user, refreshEscaltion]);
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         const response = await axios.get(
-          `${baseURL}/api/incidents/${id}/tasks/`
+          `${baseURL}/api/incidents/${id}/tasks/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          }
         );
         setTasks(response.data.sort((a, b) => a.step - b.step));
       } catch (error) {
@@ -309,7 +428,11 @@ const DetailIncident = () => {
   useEffect(() => {
     const fetchWorkflow = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/workflows/`);
+        const response = await axios.get(`${baseURL}/api/workflows/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
         setWorkflows(response.data);
       } catch (error) {
         console.error("Failed to fetch incident details:", error);
@@ -321,7 +444,11 @@ const DetailIncident = () => {
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/faculties/`)
+      .get(`${baseURL}/api/faculties/`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setFaculties(response.data))
       .catch((error) => console.error("Error fetching faculties:", error));
   }, [baseURL]);
@@ -330,7 +457,12 @@ const DetailIncident = () => {
     const fetchResolutions = async () => {
       try {
         const response = await axios.get(
-          `${baseURL}/api/resolutions/incident/${id}`
+          `${baseURL}/api/resolutions/incident/${id}`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          }
         );
         setResolutions(response.data);
       } catch (error) {
@@ -339,11 +471,15 @@ const DetailIncident = () => {
     };
 
     fetchResolutions();
-  }, [baseURL]);
+  }, [baseURL, resolutionsReset]);
   useEffect(() => {
     if (incident && incident.faculty) {
       axios
-        .get(`${baseURL}/api/buildings/?faculty=${incident.faculty}`)
+        .get(`${baseURL}/api/buildings/?faculty=${incident.faculty}`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        })
         .then((response) => setBuildings(response.data))
         .catch((error) => console.error("Error fetching buildings:", error));
     }
@@ -352,7 +488,11 @@ const DetailIncident = () => {
   useEffect(() => {
     if (incident && incident.building) {
       axios
-        .get(`${baseURL}/api/buildings/${incident.building}/`)
+        .get(`${baseURL}/api/buildings/${incident.building}/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        })
         .then((response) => {
           const building = response.data;
           setFloors(
@@ -364,7 +504,11 @@ const DetailIncident = () => {
         );
 
       axios
-        .get(`${baseURL}/api/classrooms/?building=${incident.building}`)
+        .get(`${baseURL}/api/classrooms/?building=${incident.building}`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        })
         .then((response) => setClassrooms(response.data))
         .catch((error) => console.error("Error fetching classrooms:", error));
     }
@@ -374,7 +518,12 @@ const DetailIncident = () => {
     if (incident && incident.building && incident.floor !== "") {
       axios
         .get(
-          `${baseURL}/api/classrooms/?building=${incident.building}&floor=${incident.floor}`
+          `${baseURL}/api/classrooms/?building=${incident.building}&floor=${incident.floor}`,
+          {
+            headers: {
+              Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+            },
+          }
         )
         .then((response) => setClassrooms(response.data))
         .catch((error) => console.error("Error fetching classrooms:", error));
@@ -383,21 +532,33 @@ const DetailIncident = () => {
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/incident-types/`)
+      .get(`${baseURL}/api/incident-types/`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setIncidentTypes(response.data))
       .catch((error) => console.error("Error fetching incident types:", error));
   }, [baseURL]);
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/teams/`)
+      .get(`${baseURL}/api/teams/`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setTeams(response.data))
       .catch((error) => console.error("Error fetching teams:", error));
   }, [baseURL]);
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/profiles/`)
+      .get(`${baseURL}/api/profiles/`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setProfiles(response.data))
       .catch((error) => console.error("Error fetching profiles:", error));
   }, [baseURL]);
@@ -410,13 +571,21 @@ const DetailIncident = () => {
     }));
   };
   const handleSelectedTaskSubmit = async () => {
-    await makeRequest("PUT", `api/tasks/${selectedTask.id}/`, selectedTask);
+    await axios.put(`${baseURL}/api/tasks/${selectedTask.id}/`, selectedTask, {
+      headers: {
+        Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+      },
+    });
     handleEditTaskClose();
     setRefreshTasks(!refreshTasks);
   };
   const handleDeleteSelectedTask = async (id) => {
     setEmailLoading(true);
-    await makeRequest("DELETE", `api/tasks/${id}/`, selectedTask);
+    await axios.delete(`${baseURL}/api/tasks/${id}/`, {
+      headers: {
+        Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+      },
+    });
     setRefreshTasks(!refreshTasks);
     setEmailLoading(false);
   };
@@ -459,7 +628,11 @@ const DetailIncident = () => {
 
   const handleSave = async () => {
     try {
-      await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
+      await axios.put(`${baseURL}/api/incidents/${id}/`, incident, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
     } catch (error) {
       console.error("Failed to update incident:", error);
     } finally {
@@ -472,7 +645,11 @@ const DetailIncident = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`${baseURL}/api/incidents/${id}`);
+      await axios.delete(`${baseURL}/api/incidents/${id}`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       navigate("/incident");
       console.log("Incident deleted successfully");
     } catch (error) {
@@ -490,14 +667,32 @@ const DetailIncident = () => {
 
   const handleEditTask = async (id) => {
     setDialogEditTaskOpen(true);
-    const response = await makeRequest("GET", `/api/tasks/${id}/`);
-    setSelectedTask(response);
+    const response = await axios.get(`${baseURL}/api/tasks/${id}/`, {
+      headers: {
+        Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+      },
+    });
+    setSelectedTask(response.data);
   };
 
   const handleSendMail = async () => {
-    if (incident) {
+    try {
       setEmailLoading(true);
+      const uniqueTaskTo = [...new Set(tasks.map((task) => task.task_to))];
+      console.log(uniqueTaskTo);
+      if (uniqueTaskTo) {
+        setIncident((prevIncident) => ({
+          ...prevIncident,
+          assigned_to: uniqueTaskTo,
+        }));
+        handleSave();
+      }
+    } catch {}
+    handleSave();
+
+    if (incident) {
       try {
+        handleSave();
         // Call the API to send emails with the CSRF token
         const response = await axios.post(
           `${baseURL}/api/incidents/${id}/send-mail/`,
@@ -505,6 +700,7 @@ const DetailIncident = () => {
           {
             headers: {
               "X-CSRFToken": "EHxKPGqz0S9xMYMvd95gAj5xtnueUgAB",
+              Authorization: `Token ${token}`,
             },
           }
         );
@@ -527,6 +723,7 @@ const DetailIncident = () => {
       } finally {
         setEmailLoading(false); // Hide spinner and re-enable page
       }
+      handleSave();
     }
   };
 
@@ -545,7 +742,11 @@ const DetailIncident = () => {
         new_level: newLevel,
         comments: escalationNote,
       };
-      await axios.post(`${baseURL}/api/escalations/`, escalationData);
+      await axios.post(`${baseURL}/api/escalations/`, escalationData, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       setIncident((prevIncident) => ({
         ...prevIncident,
         status: "Escalated",
@@ -554,13 +755,20 @@ const DetailIncident = () => {
       setEscalateDialogOpen(false);
     } catch (error) {
       console.error("Failed to escalate incident:", error);
+    } finally {
+      setRefreshEscaltion(!refreshEscaltion);
     }
-    try {
-      await axios.put(`${baseURL}/api/incidents/${id}/`, incident);
-      console.log("incident successfully saved");
-    } catch (error) {
-      console.error("Failed to update incident:", error);
-    }
+
+    // try {
+    //   await axios.put(`${baseURL}/api/incidents/${id}/`, incident, {
+    //     headers: {
+    //       Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+    //     },
+    //   });
+    //   console.log("incident successfully saved");
+    // } catch (error) {
+    //   console.error("Failed to update incident:", error);
+    // }
   };
 
   const handleEscalateClose = () => {
@@ -601,18 +809,26 @@ const DetailIncident = () => {
 
   const handleSaveResolveClose = async () => {
     if (incident) {
-      await updateItemStatus(baseURL, id, incident, "Resolved");
+      await updateItemStatus(baseURL, id, incident, "Resolved", {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       setIncident((prevIncident) => ({
         ...prevIncident,
         status: "Resolved",
       }));
-      setResolutionsReset(true);
+      setResolutionsReset(!resolutionsReset);
     }
   };
 
   const handleAccept = async () => {
     if (incident) {
-      await updateItemStatus(baseURL, id, incident, "In Progress");
+      await updateItemStatus(baseURL, id, incident, "In Progress", {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       setIncident((prevIncident) => ({
         ...prevIncident,
         status: "In Progress",
@@ -622,7 +838,11 @@ const DetailIncident = () => {
 
   const handleReject = async () => {
     if (incident) {
-      await updateItemStatus(baseURL, id, incident, "Rejected");
+      await updateItemStatus(baseURL, id, incident, "Rejected", {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       setIncident((prevIncident) => ({
         ...prevIncident,
         status: "Rejected",
@@ -632,7 +852,11 @@ const DetailIncident = () => {
 
   const handleClose = async () => {
     if (incident) {
-      await updateItemStatus(baseURL, id, incident, "Closed");
+      await updateItemStatus(baseURL, id, incident, "Closed", {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       setIncident((prevIncident) => ({
         ...prevIncident,
         status: "Closed",
@@ -662,7 +886,11 @@ const DetailIncident = () => {
   );
 
   if (!incident) {
-    return <Typography>Loading...</Typography>;
+    return (
+      <Typography>
+        You Don't Have Permission to View Ask Your Supervisor
+      </Typography>
+    );
   }
   function getRandomIds(data, count) {
     const ids = data.map((item) => item.id);
@@ -678,13 +906,18 @@ const DetailIncident = () => {
     setEmailLoading(true);
     if (incident.workflow) {
       const response = await axios.get(
-        `${baseURL}/api/workflows/${incident.workflow}/steps/`
+        `${baseURL}/api/workflows/${incident.workflow}/steps/`,
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        }
       );
 
       setSteps(response.data);
 
       try {
-        response.data.forEach((element) => {
+        response.data.forEach(async (element) => {
           let data = {
             step: element.step,
             name: element?.name,
@@ -695,7 +928,11 @@ const DetailIncident = () => {
             task_to: element.attendees.id, //hardcoded
           };
           try {
-            makeRequest("POST", `/api/tasks/`, data);
+            await axios.post(`${baseURL}/api/tasks/`, data, {
+              headers: {
+                Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+              },
+            });
           } catch (error) {
             console.log(error);
           }
@@ -709,8 +946,8 @@ const DetailIncident = () => {
     }
   };
   const handlePredict = async () => {
-    setEmailLoading(true);
     try {
+      setEmailLoading(true);
       const response = await axios.post(
         `${baseURL}/api/incident/predict/`,
         {
@@ -718,89 +955,42 @@ const DetailIncident = () => {
         },
         {
           headers: {
-            "Content-Type": "application/json",
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
           },
         }
       );
 
-      setPrediction(response.data.predicted_category);
-      console.log(prediction);
-      const category = incidentTypes.find(
-        (category) => category.name === prediction
-      );
-      console.log(category);
-      if (prediction === "Security") {
-        setIncident((prevIncident) => ({
-          ...prevIncident,
-          teams: [2],
-        }));
-      }
+      setpredictedCategory(response.data.category);
+      setPredictedWorkflow(response.data.workflow);
 
-      // if (prediction) {
-      //   const category = incidentTypes.find(
-      //     (category) => category.name === prediction[0]
-      //   );
-      //   if (
-      //     prediction[0] === "Facility and Maintenance Issues" ||
-      //     prediction[0] === "Transportation and Parking"
-      //   ) {
-      //     setIncident((prevIncident) => ({
-      //       ...prevIncident,
-      //       teams: [1],
-      //     }));
-      //   }
-      //   if (
-      //     prediction[0] === "Academic and Student Affairs" ||
-      //     prediction[0] === "Administrative and Operational Issues"
-      //   ) {
-      //     setIncident((prevIncident) => ({
-      //       ...prevIncident,
-      //       teams: [5],
-      //     }));
-      //   }
-      //   if (
-      //     prediction[0] === "Security Incidents" ||
-      //     prediction[0] === "Health and Safety"
-      //   ) {
-      //     setIncident((prevIncident) => ({
-      //       ...prevIncident,
-      //       teams: [2],
-      //     }));
-      //   }
-      //   if (prediction[0] === "IT and Network Issues") {
-      //     setIncident((prevIncident) => ({
-      //       ...prevIncident,
-      //       teams: [3],
-      //     }));
-      //   }
-      //   console.log(category.id);
-      if (category) {
-        setIncident((prevIncident) => ({
-          ...prevIncident,
-          incident_type: [category.id],
-        }));
-      }
       setIncident((prevIncident) => ({
         ...prevIncident,
-        priority: "High",
+        priority: response.data.priority,
       }));
+      const category = incidentTypes.find(
+        (category) => category.name === predictedCategory
+      );
+      const workflow = workflows.find(
+        (workflow) => workflow.name === predictedWorkflow
+      );
+
+      if (category && workflow) {
+        setIncident((prevIncident) => ({
+          ...prevIncident,
+          incident_type: [category?.id],
+        }));
+        setIncident((prevIncident) => ({
+          ...prevIncident,
+          workflow: workflow?.id,
+        }));
+      }
     } catch (err) {
       console.log(err.response ? err.response.data.error : err.message);
-      setPrediction(null);
+      setpredictedCategory(null);
     } finally {
-      // await handleAccept();
-      const randomIds = getRandomIds(profiles, 2);
-      setIncident((prevIncident) => ({
-        ...prevIncident,
-        assigned_to: randomIds,
-      }));
       setEmailLoading(false);
-      await updateItemStatus(baseURL, id, incident, "In Progress");
-      setIncident((prevIncident) => ({
-        ...prevIncident,
-        status: "In Progress",
-      }));
     }
+    handleSave();
   };
 
   return (
@@ -827,54 +1017,61 @@ const DetailIncident = () => {
         </Button>
       </div>
       <Grid container spacing={2}>
-        <Grid item xs={3}>
+        <Grid item xs={3} className="hidden lg:block">
           <Header
             title="INCIDENT DETAIL"
             subtitle={`Detailed view of the Incident ${incident.title}`}
           />
         </Grid>
+        <div className="lg:hidden flex justify-center items-center  w-full">
+          <Header
+            title="INCIDENT DETAIL"
+            subtitle={`Detailed view of the Incident ${incident.title}`}
+          />
+        </div>
         <Grid item xs={9}>
           <IncidentProgress status={incident.status} />
         </Grid>
       </Grid>
-      <Grid item xs={12} mt="20px" mb="20px">
-        <div className="flex space-x-4">
-          {incident?.status === "Open" ? (
-            <>
-              <Button
-                onClick={handlePredict}
-                variant="contained"
-                color="secondary"
-              >
-                Accept
-              </Button>
-              <Button onClick={handleReject} variant="outlined" color="error">
-                Reject
-              </Button>
-            </>
-          ) : (
-            <>
-              {isEditable && (
-                <Button
-                  onClick={() => handleSave()}
-                  variant="contained"
-                  color="secondary"
-                >
-                  Save
-                </Button>
-              )}
-              {!isEditable && (
-                <Button
-                  onClick={() => handleEdit()}
-                  variant="contained"
-                  color="secondary"
-                >
-                  Edit
-                </Button>
-              )}
 
-              {incident?.status === "In Progress" && (
-                <>
+      <Grid item xs={12} mt="20px" mb="20px">
+        {/* For larger screens, display the buttons directly */}
+        {!isMobile ? (
+          <div className="flex space-x-4">
+            {incident?.status === "Open" ? (
+              <>
+                <Button
+                  onClick={handleAccept}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Accept
+                </Button>
+                <Button onClick={handleReject} variant="outlined" color="error">
+                  Reject
+                </Button>
+              </>
+            ) : (
+              <>
+                {isEditable ? (
+                  <Button
+                    onClick={handleSave}
+                    variant="contained"
+                    color="secondary"
+                  >
+                    Save
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleEdit}
+                    variant="contained"
+                    color="secondary"
+                  >
+                    Edit
+                  </Button>
+                )}
+
+                {incident?.status === "In Progress" && (
                   <Button
                     onClick={handleSendMail}
                     variant="contained"
@@ -882,50 +1079,159 @@ const DetailIncident = () => {
                   >
                     Assign Members
                   </Button>
-                </>
-              )}
-              <Button onClick={handleResolve} variant="contained" color="info">
-                Resolve Incident
-              </Button>
-              {incident?.status === "Assign" && (
-                <>
-                  {incident?.status !== "Escalated" && (
-                    <Button
-                      onClick={handleEscalate}
-                      variant="contained"
-                      color="warning"
-                    >
-                      Escalate Incident
-                    </Button>
-                  )}
-                </>
-              )}
-              <Button onClick={handleDelete} variant="contained" color="error">
-                Delete Incident
-              </Button>
-              <Button onClick={handleReject} variant="outlined" color="error">
-                Reject
-              </Button>
-              {incident?.status === "Resolved" && (
-                <Button
-                  onClick={handleClose}
-                  variant="contained"
-                  color="primary"
-                >
-                  Close
-                </Button>
-              )}
+                )}
 
-              <Button
-                onClick={createTasks}
-                variant="contained"
-                color="secondary"
-              >
-                Create Tasks
-              </Button>
-            </>
-          )}
-        </div>
+                <Button
+                  onClick={handleDelete}
+                  variant="contained"
+                  color="error"
+                >
+                  Delete Incident
+                </Button>
+                <Button onClick={handleReject} variant="outlined" color="error">
+                  Reject
+                </Button>
+
+                {incident?.status === "Resolved" && (
+                  <Button
+                    onClick={handleClose}
+                    variant="contained"
+                    color="primary"
+                  >
+                    Close
+                  </Button>
+                )}
+
+                <Button
+                  onClick={createTasks}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Create Tasks
+                </Button>
+                <Button
+                  onClick={handlePredict}
+                  variant="contained"
+                  color="secondary"
+                >
+                  Classify With AI
+                </Button>
+              </>
+            )}
+          </div>
+        ) : (
+          // For smaller screens, show a single "Actions" button
+          <>
+            <Button
+              aria-controls="simple-menu"
+              aria-haspopup="true"
+              onClick={handleMenuClick}
+              variant="contained"
+              color="secondary"
+              endIcon={<MoreVertIcon />}
+            >
+              Actions
+            </Button>
+            <Menu
+              id="simple-menu"
+              anchorEl={anchorEl}
+              keepMounted
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+            >
+              {incident?.status === "Open" ? (
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      handleAccept();
+                      handleMenuClose();
+                    }}
+                  >
+                    Accept
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleReject();
+                      handleMenuClose();
+                    }}
+                  >
+                    Reject
+                  </MenuItem>
+                </>
+              ) : (
+                <>
+                  {isEditable ? (
+                    <MenuItem
+                      onClick={() => {
+                        handleSave();
+                        handleMenuClose();
+                      }}
+                    >
+                      Save
+                    </MenuItem>
+                  ) : (
+                    <MenuItem
+                      onClick={() => {
+                        handleEdit();
+                        handleMenuClose();
+                      }}
+                    >
+                      Edit
+                    </MenuItem>
+                  )}
+
+                  {incident?.status === "In Progress" && (
+                    <MenuItem
+                      onClick={() => {
+                        handleSendMail();
+                        handleMenuClose();
+                      }}
+                    >
+                      Assign Members
+                    </MenuItem>
+                  )}
+
+                  <MenuItem
+                    onClick={() => {
+                      handleDelete();
+                      handleMenuClose();
+                    }}
+                  >
+                    Delete Incident
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleReject();
+                      handleMenuClose();
+                    }}
+                  >
+                    Reject
+                  </MenuItem>
+
+                  {incident?.status === "Resolved" && (
+                    <MenuItem
+                      onClick={() => {
+                        handleClose();
+                        handleMenuClose();
+                      }}
+                    >
+                      Close
+                    </MenuItem>
+                  )}
+
+                  <MenuItem
+                    onClick={() => {
+                      createTasks();
+                      handleMenuClose();
+                    }}
+                  >
+                    Create Tasks
+                  </MenuItem>
+                </>
+              )}
+            </Menu>
+          </>
+        )}
       </Grid>
 
       <Grid item xs={12} className="border-t border-gray-300">
@@ -937,7 +1243,6 @@ const DetailIncident = () => {
             "& .MuiTab-root": {
               color: "#ffffff", // Default text color
               textTransform: "none",
-
               "&:hover": {
                 backgroundColor: "#115293", // Hover background color
               },
@@ -948,18 +1253,19 @@ const DetailIncident = () => {
             },
           }}
         >
-          <Tab label="Details" />
+          <Tab className="mr-4" label="Details" />
+          <Tab className="mr-4 border border-transparent" label="Tasks" />
+          <Tab className="mr-4 border border-transparent" label="Resolutions" />
           <Tab
-            sx={{ marginLeft: "15px", borderColor: "#FFFFFF" }}
-            label="Tasks"
+            className="mr-4 border border-transparent"
+            label="Escalation History"
           />
-          <Tab sx={{ marginLeft: "15px" }} label="Resolutions" />
-          <Tab sx={{ marginLeft: "15px" }} label="Escalation History" />
         </Tabs>
         <TabPanel value={value} index={0}>
           <Box>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First column */}
+              <div>
                 <TextField
                   color="info"
                   label="Title"
@@ -1006,7 +1312,6 @@ const DetailIncident = () => {
                     value={incident.status}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     <MenuItem value="Open">Open</MenuItem>
                     <MenuItem value="In Progress">In Progress</MenuItem>
@@ -1031,7 +1336,6 @@ const DetailIncident = () => {
                     value={incident.priority}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     <MenuItem value="Low">Low</MenuItem>
                     <MenuItem value="Medium">Medium</MenuItem>
@@ -1039,8 +1343,10 @@ const DetailIncident = () => {
                     <MenuItem value="Critical">Critical</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+
+              {/* Second column */}
+              <div>
                 <Autocomplete
                   disabled={!isEditable}
                   multiple
@@ -1057,7 +1363,6 @@ const DetailIncident = () => {
                       label="Incident Type"
                       fullWidth
                       margin="normal"
-                      disabled={!isEditable}
                     />
                   )}
                 />
@@ -1113,7 +1418,6 @@ const DetailIncident = () => {
                     value={incident.workflow}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     {workflows.map((workflow) => (
                       <MenuItem key={workflow.id} value={workflow.id}>
@@ -1136,7 +1440,6 @@ const DetailIncident = () => {
                     value={incident.faculty}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     {faculties.map((faculty) => (
                       <MenuItem key={faculty.id} value={faculty.id}>
@@ -1159,7 +1462,6 @@ const DetailIncident = () => {
                     value={incident.building}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     {buildings.map((building) => (
                       <MenuItem key={building.id} value={building.id}>
@@ -1182,7 +1484,6 @@ const DetailIncident = () => {
                     value={incident.floor}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     {floors.map((floor) => (
                       <MenuItem key={floor} value={floor}>
@@ -1205,7 +1506,6 @@ const DetailIncident = () => {
                     value={incident.classroom}
                     onChange={handleSelectChange}
                     fullWidth
-                    margin="normal"
                   >
                     {classrooms.map((classroom) => (
                       <MenuItem key={classroom.id} value={classroom.id}>
@@ -1214,9 +1514,10 @@ const DetailIncident = () => {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </Box>
+
           {incident?.latitude && incident?.longitude && (
             <Box className="mt-7">
               <MapComponent
@@ -1257,6 +1558,9 @@ const DetailIncident = () => {
                 },
               }}
             >
+              <Button onClick={handleResolve} variant="contained" color="info">
+                Resolve Incident
+              </Button>
               <DataGrid
                 autoPageSize
                 className="cursor-pointer"
@@ -1267,9 +1571,16 @@ const DetailIncident = () => {
           </TabPanel>
         )}
         <TabPanel value={value} index={1}>
-          <Button onClick={handleAddTask} variant="outlined" color="secondary">
-            Add a Task
-          </Button>
+          <div className="flex space-x-4">
+            <Button
+              onClick={handleAddTask}
+              variant="outlined"
+              color="secondary"
+            >
+              Add a Task
+            </Button>
+          </div>
+
           <Box
             m="20px 0 0 0"
             height="100vh"
@@ -1337,6 +1648,19 @@ const DetailIncident = () => {
               },
             }}
           >
+            {incident?.status === "Assign" && (
+              <>
+                {incident?.status !== "Escalated" && (
+                  <Button
+                    onClick={handleEscalate}
+                    variant="contained"
+                    color="warning"
+                  >
+                    Escalate Incident
+                  </Button>
+                )}
+              </>
+            )}
             <DataGrid
               autoPageSize
               className="cursor-pointer"
@@ -1388,6 +1712,31 @@ const DetailIncident = () => {
           setRefreshTasks(!refreshTasks);
         }}
       />
+      <Dialog open={isForfeitDialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle>Enter Forfeit Reason</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Please provide a reason for forfeiting this task.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Forfeit Reason"
+            type="text"
+            fullWidth
+            value={forfeitReason}
+            onChange={(e) => setForfeitReason(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmitForfeit} color="primary">
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

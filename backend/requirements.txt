@@ -1,0 +1,11 @@
+django
+djangorestframework
+python-dotenv
+pip install django-cors-headers
+pip install djangorestframework-simplejwt
+pip install django-filter
+pip install opencv-python
+pip install joblib
+pip install xgboost
+pip install nltk
+pip install scikit-learn

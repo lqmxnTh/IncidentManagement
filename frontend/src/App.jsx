@@ -29,6 +29,9 @@ import Profiles from "./scenes/profiles/Profiles";
 import DetailProfiles from "./scenes/profiles/DetailProfiles";
 import WorkFlow from "./scenes/workflow";
 import DetailWorkflow from "./scenes/workflow/DetailWorkflow";
+import PrivateRoute from "./components/PrivateRoute";
+import Permission from "./scenes/permission/Permission";
+import MyIncidentPage from "./pages/MyIncidentPage";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -40,6 +43,7 @@ function App() {
         <Route path={"/report-incident"} element={<ReportIncident />} />
         <Route path={"/login"} element={<LoginPage />} />
         <Route path={"/register"} element={<Registerpage />} />
+        <Route path={"/my-incident"} element={<MyIncidentPage />} />
         <Route path={"/*"} element={<Errorpage />} />
         <Route
           path="/dashboard"
@@ -47,7 +51,9 @@ function App() {
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Dashboard />
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
@@ -58,40 +64,9 @@ function App() {
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Team />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/contacts"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Contacts />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/invoices"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Invoices />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/form"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Form />
+                <PrivateRoute>
+                  <Team />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
@@ -102,7 +77,9 @@ function App() {
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <WorkFlow />
+                <PrivateRoute>
+                  <WorkFlow />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
@@ -113,167 +90,145 @@ function App() {
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <DetailWorkflow />
+                <PrivateRoute>
+                  <DetailWorkflow />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
-        <Route
-          path="/pie"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Pie />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/line"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Line />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/faq"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <FAQ />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/calendar"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Calendar />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
-        <Route
-          path="/geography"
-          element={
-            <ColorModeContext.Provider value={colorMode}>
-              <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Geography />
-              </ThemeProvider>
-            </ColorModeContext.Provider>
-          }
-        />
+
         <Route
           path="/incident"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Incident />
+                <PrivateRoute>
+                  <Incident />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/incidents/:id"
+          path="/incidents/:id"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <DetailIncident />
+                <PrivateRoute>
+                  <DetailIncident />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/teams/:id"
+          path="/teams/:id"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <DetailTeam />
+                <PrivateRoute>
+                  <DetailTeam />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/teams/new"
+          path="/teams/new"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <NewTeam />
+                <PrivateRoute>
+                  <NewTeam />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/departments"
+          path="/departments"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Department />
+                <PrivateRoute>
+                  <Department />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/deaprtments/new"
+          path="/deaprtments/new"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <NewDepartment />
+                <PrivateRoute>
+                  <NewDepartment />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/departments/:id"
+          path="/departments/:id"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <DetailDepartment />
+                <PrivateRoute>
+                  <DetailDepartment />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/profiles"
+          path="/profiles"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Profiles />
+                <PrivateRoute>
+                  <Profiles />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
         <Route
-           path="/profiles/:id"
+          path="/profiles/:id"
           element={
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <DetailProfiles />
+                <PrivateRoute>
+                  <DetailProfiles />
+                </PrivateRoute>
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          }
+        />
+        <Route
+          path="/permission"
+          element={
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <PrivateRoute>
+                  <Permission />
+                </PrivateRoute>
               </ThemeProvider>
             </ColorModeContext.Provider>
           }
         />
       </Routes>
-      
 
       <SimpleFooter />
     </>

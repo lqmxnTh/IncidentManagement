@@ -23,6 +23,7 @@ const AddNewTaskDialogue = ({
   refreshTasks,
 }) => {
   const baseURL = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem("token");
   const [profiles, setProfile] = useState([]);
   const [addTaskData, setAddTaskData] = useState({
     created_by: logUserData,
@@ -41,7 +42,11 @@ const AddNewTaskDialogue = ({
 
   useEffect(() => {
     axios
-      .get(`${baseURL}/api/profiles/`)
+      .get(`${baseURL}/api/profiles/`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      })
       .then((response) => setProfile(response.data))
       .catch((error) => console.error("Error fetching profiles:", error));
   }, [baseURL]);
@@ -58,7 +63,11 @@ const AddNewTaskDialogue = ({
 
   const handleSelectedTaskSubmit = async (event) => {
     event.preventDefault();
-    await makeRequest("POST", `/api/tasks/`, addTaskData);
+    await axios.post(`${baseURL}/api/tasks/`, addTaskData, {
+      headers: {
+        Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+      },
+    });
     refreshTasks();
     handleClose();
   };

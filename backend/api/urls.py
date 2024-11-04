@@ -1,6 +1,11 @@
-from django.urls import path
-from .views import UserLoginView, UserRegisterView, test_token, ProfileDetailView,ProfileDetailViewUserId, ProfileListView, RoleListView, RoleDetailView, DepartmentListView, DepartmentDetailView, TeamListView, TeamDetailView
-
+from django.urls import path,include
+from rest_framework.routers import DefaultRouter
+from .views import UserLoginView, UserRegisterView, test_token,GroupViewSetByUser, UserViewSet, GroupViewSet, PermissionViewSet, ProfileDetailView,ProfileDetailViewUserId, ProfileListView, RoleListView, RoleDetailView, DepartmentListView, DepartmentDetailView, TeamListView, TeamDetailView
+router = DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'groups', GroupViewSet)
+router.register(r'permissions', PermissionViewSet)
+router.register(r'user-groups', GroupViewSetByUser, basename='user-group')
 urlpatterns = [
     path('login/', UserLoginView, name='login'),
     path('register/', UserRegisterView, name='register'),
@@ -14,4 +19,5 @@ urlpatterns = [
     path('departments/<int:pk>/', DepartmentDetailView.as_view(), name='department-detail'),
     path('teams/', TeamListView.as_view(), name='team-list'),
     path('teams/<int:pk>/', TeamDetailView.as_view(), name='team-detail'),
+    path('', include(router.urls)),
 ]

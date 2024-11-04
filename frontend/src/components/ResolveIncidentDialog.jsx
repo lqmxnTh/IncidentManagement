@@ -11,11 +11,11 @@ import {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const ResolveIncidentDialog = ({ open, onClose, incidentId,save,teams }) => {
+const ResolveIncidentDialog = ({ open, onClose, incidentId, save, teams}) => {
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [resolutionTime, setResolutionTime] = useState("");
   const baseURL = import.meta.env.VITE_API_URL;
-
+  const token = localStorage.getItem("token");
   const handleResolve = async () => {
     try {
       const resolutionData = {
@@ -25,7 +25,12 @@ const ResolveIncidentDialog = ({ open, onClose, incidentId,save,teams }) => {
         teams: teams, // Add appropriate team IDs here if needed
       };
       console.log(resolutionData)
-      await axios.post(`${baseURL}/api/resolutions/`, resolutionData);
+      await axios.post(`${baseURL}/api/resolutions/`, resolutionData,
+        {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
       save();
       onClose();
     } catch (error) {

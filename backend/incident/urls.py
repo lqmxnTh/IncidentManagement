@@ -8,6 +8,7 @@ router.register(r'escalations', EscalationHistoryViewSet)
 
 urlpatterns = [
     path('incidents/', IncidentListCreateView.as_view(), name='incident_list_create'),
+    path('user-incidents/<int:user_id>/', UserIncidentListView.as_view(), name='user-incident-list'),
     path('view-only-incidents/', IncidentListView.as_view(), name='incident_list_view'),
     path('incidents/<int:pk>/', IncidentDetailView.as_view(), name='incident_detail'),
     path('incident-types/', IncidentTypeListView.as_view(), name='incident_types'),
@@ -23,9 +24,11 @@ urlpatterns = [
     path('tasks/<int:pk>/', TaskDetailView.as_view(), name='incident_tasks'),
     path('view-only-steps/', StepsListViewONLY.as_view(), name='steps'),
     path('steps/', StepsListCreateView.as_view(), name='steps'),
+    path('steps/<int:pk>/', IndividualStepsView.as_view(), name='steps-view'),
     path('workflows/<int:workflow_id>/steps/', StepsByWorkflowView.as_view(), name='steps-by-workflow'),
     path('workflow/<int:workflow_id>/add_step/', AddStepToWorkflowView.as_view(), name='add_step_to_workflow'),
     path('update-steps/<int:pk>/', IndividualStepsView.as_view(), name='steps'),
+    path('create-workflows/', CreateWorkFlowListView.as_view(), name='create-workflow'),
     path('workflows/', WorkFlowListView.as_view(), name='workflow'),
     path('workflows/<int:pk>/', WorkFlowDetailView.as_view(), name='workflow-detail'),
     path('notifications/unread/<int:user_id>/', UnreadNotificationsView.as_view(), name='unread-notification'),

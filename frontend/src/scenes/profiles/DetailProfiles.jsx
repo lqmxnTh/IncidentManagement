@@ -10,7 +10,9 @@ import {
   Autocomplete,
   Grid,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
@@ -23,11 +25,40 @@ const DetailProfiles = () => {
   const [allProfiles, setAllProfiles] = useState(null);
   const [allRoles, setAllRoles] = useState(null);
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const [tabIndex, setTabIndex] = useState(0);
+  const [groups, setGroups] = useState([]);
+  useEffect(() => {
+    const getGroups = async () => {
+      const userGroups = await fetchUserGroups();
+      setGroups(userGroups);
+    };
+
+    getGroups();
+  }, []);
+
+  const fetchUserGroups = async () => {
+    try {
+      const response = await axios.get(`${baseURL}/api/user-groups/`, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem('token')}`, 
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching user groups:", error);
+      return [];
+    }
+  };
 
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/profiles/${id}/`);
+        const response = await axios.get(`${baseURL}/api/profiles/${id}/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
         setAllProfiles(response.data);
         console.log(response.data);
       } catch (error) {
@@ -36,7 +67,11 @@ const DetailProfiles = () => {
     };
     const fetchRoles = async () => {
       try {
-        const response = await axios.get(`${baseURL}/api/roles/`);
+        const response = await axios.get(`${baseURL}/api/roles/`, {
+          headers: {
+            Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+          },
+        });
         setAllRoles(response.data);
         console.log(response.data);
       } catch (error) {
@@ -49,7 +84,11 @@ const DetailProfiles = () => {
 
   const handleSave = async () => {
     try {
-      await axios.put(`${baseURL}/api/profiles/${id}/`, allProfiles);
+      await axios.put(`${baseURL}/api/profiles/${id}/`, allProfiles, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
     } catch (error) {
       console.error("Failed to update Profiles:", error);
     }
@@ -70,7 +109,11 @@ const DetailProfiles = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`${baseURL}/api/profiles/${id}`);
+      await axios.delete(`${baseURL}/api/profiles/${id}`, {
+        headers: {
+          Authorization: `Token ${token}`, // Use 'Token' instead of 'Bearer'
+        },
+      });
       navigate("/Profiles");
       console.log("Profiles deleted successfully");
     } catch (error) {
@@ -88,75 +131,130 @@ const DetailProfiles = () => {
   if (!allProfiles) {
     return <Typography>Loading...</Typography>;
   }
-
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
+  };
   return (
     <Box m="20px">
+      <div className="mb-5">
+        <Button
+          sx={{
+            backgroundColor: colors.blueAccent[700],
+            color: colors.grey[100],
+          }}
+          onClick={() => {
+            navigate("/profiles");
+          }}
+        >
+          Back
+        </Button>
+      </div>
       <Header title="Profiles DETAIL" subtitle="Detailed view of Profiles" />
-      <Box m="40px 0">
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <TextField
-              label="Username"
-              name="username"
-              value={allProfiles.user_name}
-              fullWidth
-              margin="normal"
-              color="secondary"
-              disabled={true}
-            />
-            <Autocomplete
-              multiple
-              options={allRoles}
-              getOptionLabel={(option) => option?.name}
-              value={allRoles?.filter((type) =>
-                allProfiles?.role.includes(type?.id)
-              )}
-              onChange={handleRolesChange}
-              renderInput={(params) => (
+      <Tabs
+        value={tabIndex}
+        onChange={handleTabChange}
+        aria-label="incident details tabs"
+        sx={{
+          "& .MuiTab-root": {
+            color: "#ffffff", // Default text color
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#115293", // Hover background color
+            },
+            "&.Mui-selected": {
+              color: "#1976d2", // Text color of selected tab
+              backgroundColor: "#ffffff", // Background color of selected tab
+            },
+          },
+        }}
+      >
+        <Tab label="Details" />
+        <Tab label="Groups" />
+        <Tab label="Permissions" />
+      </Tabs>
+      {tabIndex === 0 && (
+        <>
+          <Box m="40px 0">
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
                 <TextField
-                  {...params}
-                  label="Roles"
+                  label="Username"
+                  name="username"
+                  value={allProfiles.user_name}
                   fullWidth
                   margin="normal"
                   color="secondary"
+                  disabled={true}
                 />
-              )}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={allProfiles.staff}
-                  onChange={handleStaffChange}
-                  name="staffCheckbox"
-                  color="secondary"
+                <Autocomplete
+                  multiple
+                  options={allRoles}
+                  getOptionLabel={(option) => option?.name}
+                  value={allRoles?.filter((type) =>
+                    allProfiles?.role.includes(type?.id)
+                  )}
+                  onChange={handleRolesChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Roles"
+                      fullWidth
+                      margin="normal"
+                      color="secondary"
+                    />
+                  )}
                 />
-              }
-              label="Staff"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={allProfiles.is_available}
-                  onChange={handleIsAvailableChange}
-                  name="IsAvailable"
-                  color="secondary"
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={allProfiles.staff}
+                      onChange={handleStaffChange}
+                      name="staffCheckbox"
+                      color="secondary"
+                    />
+                  }
+                  label="Staff"
                 />
-              }
-              label="Is Available"
-            />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={allProfiles.is_available}
+                      onChange={handleIsAvailableChange}
+                      name="IsAvailable"
+                      color="secondary"
+                    />
+                  }
+                  label="Is Available"
+                />
+              </Grid>
+            </Grid>
+          </Box>
+          <Grid item xs={12} mt="20px">
+            <div className="flex space-x-4">
+              <Button
+                onClick={handleSave}
+                variant="contained"
+                color="secondary"
+              >
+                Update Profile
+              </Button>
+              <Button onClick={handleDelete} variant="contained" color="error">
+                Delete Profile
+              </Button>
+            </div>
           </Grid>
-        </Grid>
-      </Box>
-      <Grid item xs={12} mt="20px">
-        <div className="flex space-x-4">
-          <Button onClick={handleSave} variant="contained" color="secondary">
-            Update Profile
-          </Button>
-          <Button onClick={handleDelete} variant="contained" color="error">
-            Delete Profile
-          </Button>
+        </>
+      )}
+      {tabIndex === 1 && (
+        <div>
+          <h1>User Groups</h1>
+          <ul>
+            {groups?.map((group) => (
+              <li key={group.id}>{group.name}</li>
+            ))}
+          </ul>
         </div>
-      </Grid>
+      )}
     </Box>
   );
 };
